@@ -17,8 +17,7 @@ import {
   Bot,
   ChevronRight,
   ChevronLeft,
-  List, // added icon for results toggle
-  Maximize2, // added icon for expand-all
+  List,
 } from "lucide-react";
 
 interface SearchResult {
@@ -66,7 +65,6 @@ function SearchContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const w = window.innerWidth;
-    // mobile: only PDF (or results) visible as needed; desktop: all visible
     setShowResultsPane(w >= 1024); // show results on >= lg
     setShowPdfPane(true); // keep PDF viewer open by default
     setShowSummaryPanel(w >= 1280); // show AI summary on xl+
@@ -247,8 +245,9 @@ function SearchContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-20">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+      {/* Header */}
+      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-20 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center gap-2 sm:gap-4">
             <Link
@@ -340,48 +339,12 @@ function SearchContent() {
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span className="hidden sm:inline">Search</span>
               </button>
-
-              {/* Pane toggle buttons (Results / PDF / Summary) */}
-              <div className="hidden sm:flex items-center gap-2 ml-2">
-                <button
-                  onClick={() => setShowResultsPane((s) => !s)}
-                  title={showResultsPane ? "Hide Results" : "Show Results"}
-                  className={`p-2 rounded-md transition-colors ${showResultsPane ? "bg-slate-700 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                  aria-pressed={showResultsPane}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setShowPdfPane((s) => !s)}
-                  title={showPdfPane ? "Hide Document Viewer" : "Show Document Viewer"}
-                  className={`p-2 rounded-md transition-colors ${showPdfPane ? "bg-slate-700 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                  aria-pressed={showPdfPane}
-                >
-                  <FileText className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setShowSummaryPanel((s) => !s)}
-                  title={showSummaryPanel ? "Hide AI Summary" : "Show AI Summary"}
-                  className={`p-2 rounded-md transition-colors ${showSummaryPanel ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                  aria-pressed={showSummaryPanel}
-                >
-                  <Bot className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => { setShowResultsPane(true); setShowPdfPane(true); setShowSummaryPanel(true); }}
-                  title="Expand all panes"
-                  className="p-2 rounded-md bg-slate-800 text-slate-400 hover:bg-slate-700"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 xl:px-6">
+      <main className="flex-1 max-w-screen-2xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 xl:px-6 flex flex-col">
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
             {error}
@@ -389,7 +352,7 @@ function SearchContent() {
         )}
 
         {isLoading && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center flex-1">
             <div className="flex items-center gap-3 text-slate-400">
               <Loader2 className="w-6 h-6 animate-spin" />
               <span>Searching Colorado statutes...</span>
@@ -398,7 +361,7 @@ function SearchContent() {
         )}
 
         {!isLoading && hasSearched && results.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center flex-1 flex flex-col items-center justify-center">
             <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-300 mb-2">No results found</h3>
             <p className="text-slate-500">Try rephrasing your question or using different keywords.</p>
@@ -406,79 +369,107 @@ function SearchContent() {
         )}
 
         {!isLoading && results.length > 0 && (
-          // main 3-column responsive layout; each column can be toggled
-          <div className="flex flex-col xl:flex-row gap-4">
-            {/* Results List */}
-            {showResultsPane && (
-              <div className={`w-full xl:flex-shrink-0 transition-all duration-200 ${showResultsPane ? "xl:w-72" : "xl:w-0"} `}>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-slate-400">
-                    <span className="text-amber-400 font-semibold">{results.length}</span>
-                    <span className="text-slate-500"> closest matches</span>
-                  </p>
-                  <div className="hidden xl:flex items-center gap-2">
+          <div className="flex flex-col xl:flex-row gap-4 flex-1 min-h-0">
+            {/* Results Pane */}
+            <div className={`transition-all duration-300 flex flex-col ${
+              showResultsPane 
+                ? "w-full xl:w-72 xl:flex-shrink-0" 
+                : "w-full xl:w-16 xl:flex-shrink-0"
+            }`}>
+              {showResultsPane ? (
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden h-full flex flex-col">
+                  {/* Header with only collapse action */}
+                  <div className="p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <List className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-slate-100 truncate">Results</h3>
+                        <p className="text-xs text-slate-400">
+                          <span className="text-amber-400">{results.length}</span> matches
+                        </p>
+                      </div>
+                    </div>
                     <button
                       onClick={() => setShowResultsPane(false)}
                       title="Collapse results"
-                      className="p-1 rounded hover:bg-slate-700 text-slate-400"
+                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
 
-                <div className="space-y-2 xl:max-h-[calc(100vh-180px)] overflow-y-auto pr-2">
-                  {results.map((result, i) => {
-                    const meta = parseChunkMetadata(result.chunk);
-                    const isSelected = selectedResult?.id === result.id;
+                  {/* Results list */}
+                  <div className="flex-1 space-y-2 overflow-y-auto p-3 pr-2">
+                    {results.map((result, i) => {
+                      const meta = parseChunkMetadata(result.chunk);
+                      const isSelected = selectedResult?.id === result.id;
 
-                    return (
-                      <button
-                        key={result.id}
-                        onClick={() => handleSelectResult(result)}
-                        className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all ${
-                          isSelected
-                            ? "bg-amber-500/10 border-amber-500/50"
-                            : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div
-                            className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                              isSelected ? "bg-amber-500 text-slate-900" : "bg-slate-700 text-slate-400"
-                            }`}
-                          >
-                            {i + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm text-slate-200 line-clamp-2 mb-1">
-                              {result.title}
-                            </h3>
-                            <div className="flex flex-wrap gap-1 text-xs">
-                              {meta?.section && (
+                      return (
+                        <button
+                          key={result.id}
+                          onClick={() => handleSelectResult(result)}
+                          className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all ${
+                            isSelected
+                              ? "bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10"
+                              : "bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-700/30"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div
+                              className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                isSelected ? "bg-amber-500 text-slate-900" : "bg-slate-700 text-slate-400"
+                              }`}
+                            >
+                              {i + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm text-slate-200 line-clamp-2 mb-1">
+                                {result.title}
+                              </h3>
+                              <div className="flex flex-wrap gap-1 text-xs">
+                                {meta?.section && (
+                                  <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
+                                    § {meta.section}
+                                  </span>
+                                )}
                                 <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
-                                  § {meta.section}
+                                  p.{result.pageNumber}
                                 </span>
-                              )}
-                              <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
-                                p.{result.pageNumber}
-                              </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                // Collapsed state: compact sidebar
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden flex flex-col items-center justify-start pt-3 gap-3">
+                  <button
+                    onClick={() => setShowResultsPane(true)}
+                    title={`Results (${results.length})`}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-700/50 hover:bg-slate-700 text-amber-400 transition-colors"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                  <div className="w-6 h-px bg-slate-700"></div>
+                  <span className="text-xs text-slate-500 pb-2">{results.length}</span>
+                </div>
+              )}
+            </div>
 
-            {/* PDF Viewer */}
-            {showPdfPane && (
-              <div className="flex-1 min-w-0 xl:min-w-[400px] transition-all duration-200">
-                {selectedResult ? (
-                  <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                    <div className="p-2 sm:p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between">
+            {/* PDF Viewer Pane */}
+            <div className={`transition-all duration-300 flex flex-col min-h-0 ${
+              showPdfPane 
+                ? "flex-1 xl:min-w-[400px]" 
+                : "w-full xl:w-16 xl:flex-shrink-0"
+            }`}>
+              {showPdfPane ? (
+                selectedResult ? (
+                  <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden h-full flex flex-col">
+                    {/* Header */}
+                    <div className="p-2 sm:p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between flex-shrink-0">
                       <div className="flex-1 min-w-0 mr-2">
                         <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate">
                           {selectedResult.title}
@@ -487,26 +478,28 @@ function SearchContent() {
                           {selectedResult.pdfFileName} • Page {selectedResult.pageNumber}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           onClick={() => setShowPdfPane(false)}
-                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded flex-shrink-0"
                           title="Collapse viewer"
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
                         >
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronLeft className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setSelectedResult(null)}
-                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded flex-shrink-0"
+                          title="Clear selection"
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
 
+                    {/* Matched text toggle */}
                     <button
                       onClick={() => setShowMatchedText(!showMatchedText)}
-                      className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3"
+                      className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3 transition-colors flex-shrink-0"
                     >
                       <span className="flex items-center gap-2 truncate">
                         <FileText className="w-3 h-3 flex-shrink-0" />
@@ -515,15 +508,17 @@ function SearchContent() {
                       <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${showMatchedText ? "rotate-180" : ""}`} />
                     </button>
 
+                    {/* Matched text content */}
                     {showMatchedText && (
-                      <div className="p-3 border-b border-slate-700 bg-slate-900/50">
+                      <div className="p-3 border-b border-slate-700 bg-slate-900/50 overflow-y-auto max-h-32 flex-shrink-0">
                         <p className="text-xs text-slate-300 leading-relaxed font-mono">
                           {cleanSearchText(selectedResult.searchableText)}
                         </p>
                       </div>
                     )}
 
-                    <div className="bg-slate-900 h-[50vh] xl:h-[70vh]">
+                    {/* PDF iframe */}
+                    <div className="bg-slate-900 flex-1 min-h-0">
                       <iframe
                         src={getPdfUrl(selectedResult)}
                         className="w-full h-full border-0 block"
@@ -532,102 +527,118 @@ function SearchContent() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-slate-800/30 border border-slate-700 border-dashed rounded-xl p-8 xl:p-12 text-center">
-                    <FileText className="w-10 h-10 xl:w-12 xl:h-12 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 text-sm xl:text-base">Select a result to view the document</p>
+                  <div className="bg-slate-800/30 border border-slate-700 border-dashed rounded-xl p-8 xl:p-12 text-center flex items-center justify-center h-full">
+                    <div>
+                      <FileText className="w-10 h-10 xl:w-12 xl:h-12 text-slate-600 mx-auto mb-4" />
+                      <p className="text-slate-500 text-sm xl:text-base">Select a result to view the document</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* AI Summary Panel */}
-            {showSummaryPanel && (
-              <div className={`xl:flex-shrink-0 transition-[width] duration-200`} style={{ width: showSummaryPanel ? '28rem' : '2.5rem' }} >
-                {/* Toggle button for collapsed state on desktop */}
-                <div className="hidden xl:block">
-                  {!showSummaryPanel ? (
-                    <button
-                      onClick={() => setShowSummaryPanel(true)}
-                      className="w-10 h-full min-h-[400px] bg-slate-800/50 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors group"
-                      title="Show AI Summary"
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <Bot className="w-5 h-5 text-amber-400" />
-                        <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
-                      </div>
-                    </button>
-                  ) : null}
+                )
+              ) : (
+                // Collapsed state
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden flex flex-col items-center justify-start pt-3 gap-3">
+                  <button
+                    onClick={() => setShowPdfPane(true)}
+                    title="Open document viewer"
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                      selectedResult
+                        ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
+                        : "bg-slate-700/50 hover:bg-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
+                  <div className="w-6 h-px bg-slate-700"></div>
                 </div>
+              )}
+            </div>
 
-                {showSummaryPanel && (
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden h-full">
-                    {/* Header */}
-                    <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-amber-500/20">
-                          <Bot className="w-4 h-4 text-amber-400" />
+            {/* AI Summary Pane */}
+            <div className={`transition-all duration-300 flex flex-col min-h-0 ${
+              showSummaryPanel 
+                ? "flex-1 xl:min-w-[300px]" 
+                : "w-full xl:w-16 xl:flex-shrink-0"
+            }`}>
+              {showSummaryPanel ? (
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden h-full flex flex-col">
+                  {/* Header */}
+                  <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-amber-500/20">
+                        <Bot className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-100">AI Summary</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowSummaryPanel(false)}
+                      title="Collapse summary"
+                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 p-4 overflow-y-auto">
+                    {isSummaryLoading ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 border-2 border-amber-500/30 rounded-full" />
+                          <div className="absolute inset-0 w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                          <Sparkles className="absolute inset-0 m-auto w-4 h-4 text-amber-400" />
                         </div>
-                        <div>
-                          <h3 className="text-sm font-semibold text-slate-100">AI Summary</h3>
+                        <div className="text-center">
+                          <p className="text-sm text-slate-300">Analyzing results...</p>
+                          <p className="text-xs text-slate-500 mt-1">Generating legal summary</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setShowSummaryPanel(false)}
-                          className="p-1.5 hover:bg-slate-700 rounded text-slate-500 hover:text-slate-300"
-                          title="Hide panel"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                    ) : aiSummary ? (
+                      <div className="text-sm">
+                        {renderMarkdown(aiSummary)}
                       </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-4 max-h-[60vh] xl:max-h-[calc(100vh-220px)] overflow-y-auto">
-                      {isSummaryLoading ? (
-                        <div className="flex flex-col items-center justify-center py-8 gap-3">
-                          <div className="relative">
-                            <div className="w-10 h-10 border-2 border-amber-500/30 rounded-full" />
-                            <div className="absolute inset-0 w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                            <Sparkles className="absolute inset-0 m-auto w-4 h-4 text-amber-400" />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm text-slate-300">Analyzing results...</p>
-                            <p className="text-xs text-slate-500 mt-1">Generating legal summary</p>
-                          </div>
-                        </div>
-                      ) : aiSummary ? (
-                        <div className="text-sm">
-                          {renderMarkdown(aiSummary)}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-8 text-center">
-                          <Bot className="w-8 h-8 text-slate-600 mb-3" />
-                          <p className="text-sm text-slate-500">
-                            AI summary will appear here after searching
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer hint */}
-                    {aiSummary && (
-                      <div className="px-4 py-2 border-t border-slate-700 bg-slate-900/50">
-                        <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                          <Info className="w-3 h-3" />
-                          AI-generated summary. Verify with source documents.
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Bot className="w-8 h-8 text-slate-600 mb-3" />
+                        <p className="text-sm text-slate-500">
+                          AI summary will appear here after searching
                         </p>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Footer hint */}
+                  {aiSummary && (
+                    <div className="px-4 py-2 border-t border-slate-700 bg-slate-900/50 flex-shrink-0">
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                        <Info className="w-3 h-3" />
+                        AI-generated summary. Verify with source documents.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Collapsed state: vertical sidebar
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden flex flex-col items-center justify-start pt-3 gap-3">
+                  <button
+                    onClick={() => setShowSummaryPanel(true)}
+                    title="Open AI summary"
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                      aiSummary
+                        ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
+                        : "bg-slate-700/50 hover:bg-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <Bot className="w-4 h-4" />
+                  </button>
+                  <div className="w-6 h-px bg-slate-700"></div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {!isLoading && !hasSearched && (
-          <div className="text-center py-20">
+          <div className="text-center flex-1 flex flex-col items-center justify-center">
             <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-300 mb-2">Enter a search query</h3>
             <p className="text-slate-500">Search Colorado Revised Statutes in plain English</p>
