@@ -67,11 +67,13 @@
       align-items: flex-start;
       padding: 20px;
       background: #0f172a;
+      min-width: 0;
     }
     .page-container {
       position: relative;
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
       background: white;
+      flex-shrink: 0;
     }
     .page-container canvas { display: block; }
     .textLayer {
@@ -97,13 +99,13 @@
     }
     .textLayer span.markedContent { top: 0; height: 0; }
     .textLayer .highlight {
-      margin: -1px;
-      padding: 1px;
-      background-color: rgba(245, 158, 11, 0.4);
-      border-radius: 4px;
-    }
-    .textLayer .highlight.current {
-      background-color: rgba(249, 115, 22, 0.7);
+      background-color: rgba(245, 158, 11, 0.5);
+      border-radius: 2px;
+      box-shadow: 
+        -3px 0 0 rgba(245, 158, 11, 0.5), 
+        3px 0 0 rgba(245, 158, 11, 0.5),
+        0 -1px 0 rgba(245, 158, 11, 0.5),
+        0 1px 0 rgba(245, 158, 11, 0.5);
     }
     .textLayer ::selection { background: rgba(245, 158, 11, 0.4); }
     .loading {
@@ -210,7 +212,7 @@
     </div>
     <div class="zoom-controls">
       <button onclick="zoomOut()">−</button>
-      <span id="zoomLevel">100%</span>
+      <span id="zoomLevel">120%</span>
       <button onclick="zoomIn()">+</button>
     </div>
   </div>
@@ -228,34 +230,29 @@
 
     let pdf = null;
     let currentPage = initialPage;
-    let scale = 1.5;
+    let scale = 1.2;
     let currentTextLayer = null;
+    let currentSpans = [];
     let matches = [];
     let currentMatchIndex = -1;
 
-    // Normalize text for comparison - collapse whitespace, lowercase
-    function normalizeText(text) {
-      return text.replace(/\s+/g, ' ').trim().toLowerCase();
+    // Normalize text: collapse whitespace, lowercase, remove special chars
+    function normalize(text) {
+      return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
 
-    // Extract meaningful search words from the searchable text
-    // We'll search for individual words that are likely to be unique
-    function extractSearchWords(text) {
-      const normalized = normalizeText(text);
-      // Split into words, filter out very short/common words
-      const words = normalized.split(' ').filter(w => w.length > 3);
-      // Return unique words
-      return [...new Set(words)];
-    }
-
-    // For display in search box, show a truncated version
-    const displayQuery = searchQuery.length > 100 
-      ? searchQuery.substring(0, 100) + '...' 
-      : searchQuery;
-    document.getElementById('searchInput').value = displayQuery;
-    
     // Store the full query for searching
     let fullSearchQuery = searchQuery;
+    
+    // Show truncated in input
+    const displayQuery = searchQuery.length > 80 
+      ? searchQuery.substring(0, 80) + '...' 
+      : searchQuery;
+    document.getElementById('searchInput').value = displayQuery;
 
     async function init() {
       try {
@@ -268,7 +265,7 @@
         updateNavButtons();
         
         if (searchQuery) {
-          setTimeout(() => findTextOnCurrentPage(), 500);
+          setTimeout(() => highlightContiguousMatch(), 300);
         }
       } catch (err) {
         document.getElementById('viewer').innerHTML = 
@@ -314,12 +311,14 @@
         });
         await textLayer.render();
         currentTextLayer = textLayerDiv;
+        
+        // Store spans for highlighting
+        currentSpans = Array.from(textLayerDiv.querySelectorAll('span'));
 
         viewer.appendChild(container);
 
-        // Auto-highlight on current page if we have a search query
         if (fullSearchQuery) {
-          highlightMatchingSpans();
+          highlightContiguousMatch();
         }
         
       } catch (err) {
@@ -328,158 +327,114 @@
       }
     }
 
-    // Highlight spans that contain words from our search text
-    function highlightMatchingSpans() {
-      if (!currentTextLayer || !fullSearchQuery) return;
+    // Find and highlight contiguous spans that match the search text
+    function highlightContiguousMatch() {
+      if (!currentTextLayer || !fullSearchQuery || currentSpans.length === 0) return;
 
       // Clear old highlights
-      currentTextLayer.querySelectorAll('.highlight').forEach(el => {
-        el.classList.remove('highlight', 'current');
+      currentSpans.forEach(span => span.classList.remove('highlight'));
+
+      const normalizedQuery = normalize(fullSearchQuery);
+      
+      if (normalizedQuery.length < 10) return;
+
+      // Get normalized text for each span
+      const spanTexts = currentSpans.map(span => normalize(span.textContent));
+      
+      // Concatenate all spans into one string, tracking boundaries
+      let pageText = '';
+      const spanBoundaries = [];
+      
+      spanTexts.forEach((text, i) => {
+        const start = pageText.length;
+        pageText += text + ' ';
+        spanBoundaries.push({ start, end: pageText.length - 1, idx: i });
       });
 
-      const searchWords = extractSearchWords(fullSearchQuery);
-      if (searchWords.length === 0) return;
-
-      const spans = currentTextLayer.querySelectorAll('span');
-      let matchCount = 0;
-      let firstMatch = null;
-
-      spans.forEach(span => {
-        const spanText = normalizeText(span.textContent);
-        // Check if this span contains any of our search words
-        const hasMatch = searchWords.some(word => spanText.includes(word));
-        if (hasMatch) {
-          span.classList.add('highlight');
-          matchCount++;
-          if (!firstMatch) firstMatch = span;
+      // Strategy 1: Try to find a direct substring match with progressively shorter query
+      let bestMatchStart = -1;
+      let bestMatchEnd = -1;
+      
+      // Try full query first, then shorter and shorter
+      for (let len = normalizedQuery.length; len >= 50; len -= 20) {
+        for (let start = 0; start <= normalizedQuery.length - len; start += 10) {
+          const subQuery = normalizedQuery.slice(start, start + len);
+          const idx = pageText.indexOf(subQuery);
+          if (idx !== -1) {
+            bestMatchStart = idx;
+            bestMatchEnd = idx + subQuery.length;
+            break;
+          }
         }
-      });
-
-      // Mark first match as current and scroll to it
-      if (firstMatch) {
-        firstMatch.classList.add('current');
-        setTimeout(() => {
-          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+        if (bestMatchStart !== -1) break;
       }
 
-      updateSearchInfoDisplay(matchCount);
+      // Strategy 2: If no direct match, try word-based matching
+      if (bestMatchStart === -1) {
+        const queryWords = normalizedQuery.split(' ').filter(w => w.length > 3);
+        
+        // Find longest sequence of consecutive words that matches
+        for (let len = Math.min(queryWords.length, 20); len >= 4; len--) {
+          for (let start = 0; start <= queryWords.length - len; start++) {
+            const subQuery = queryWords.slice(start, start + len).join(' ');
+            const idx = pageText.indexOf(subQuery);
+            if (idx !== -1) {
+              bestMatchStart = idx;
+              bestMatchEnd = idx + subQuery.length;
+              break;
+            }
+          }
+          if (bestMatchStart !== -1) break;
+        }
+      }
+
+      if (bestMatchStart !== -1) {
+        // Highlight all spans that overlap with the match
+        spanBoundaries.forEach(({ start, end, idx }) => {
+          if (end >= bestMatchStart && start <= bestMatchEnd) {
+            currentSpans[idx].classList.add('highlight');
+          }
+        });
+        
+        updateSearchInfoDisplay(1);
+        scrollToHighlight();
+      } else {
+        updateSearchInfoDisplay(0);
+      }
+    }
+
+    function scrollToHighlight() {
+      setTimeout(() => {
+        const firstHighlight = currentTextLayer?.querySelector('.highlight');
+        if (firstHighlight) {
+          firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     }
 
     function updateSearchInfoDisplay(count) {
       const info = document.getElementById('searchInfo');
       if (count === 0) {
-        info.textContent = 'No matches on page';
+        info.textContent = 'No match found on page';
         info.className = 'search-info not-found';
       } else {
-        info.textContent = `${count} matches on page`;
+        info.textContent = `Found matching section`;
         info.className = 'search-info found';
       }
     }
 
-    // Search just on current page (for initial load)
-    function findTextOnCurrentPage() {
-      highlightMatchingSpans();
-    }
-
-    // Full document search (when user clicks Find)
+    // Manual search (when user types and clicks Find)
     async function findText() {
       const inputQuery = document.getElementById('searchInput').value.trim();
       if (!inputQuery) return;
       
-      // Update the full search query if user typed something new
       fullSearchQuery = inputQuery;
-
-      matches = [];
-      currentMatchIndex = -1;
-      
-      const info = document.getElementById('searchInfo');
-      info.textContent = 'Searching...';
-      info.className = 'search-info searching';
-
-      const searchWords = extractSearchWords(fullSearchQuery);
-      if (searchWords.length === 0) {
-        info.textContent = 'No searchable terms';
-        info.className = 'search-info not-found';
-        return;
-      }
-
-      // Search all pages
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = normalizeText(textContent.items.map(item => item.str).join(' '));
-        
-        // Check if any search words appear on this page
-        const hasMatch = searchWords.some(word => pageText.includes(word));
-        if (hasMatch) {
-          matches.push({ page: pageNum });
-        }
-
-        if (pageNum % 50 === 0) {
-          info.textContent = `Searching... ${pageNum}/${pdf.numPages}`;
-          await new Promise(r => setTimeout(r, 0));
-        }
-      }
-
-      if (matches.length > 0) {
-        // Find first match on or after current page
-        let idx = matches.findIndex(m => m.page >= currentPage);
-        if (idx === -1) idx = 0;
-        currentMatchIndex = idx;
-        await goToMatch(currentMatchIndex);
-      }
-
-      updateSearchInfo();
-    }
-
-    async function goToMatch(idx) {
-      if (idx < 0 || idx >= matches.length) return;
-      
-      const match = matches[idx];
-      if (match.page !== currentPage) {
-        currentPage = match.page;
-        document.getElementById('pageInput').value = currentPage;
-        await renderPage(currentPage);
-        updateNavButtons();
-      } else {
-        highlightMatchingSpans();
-      }
-    }
-
-    function updateSearchInfo() {
-      const info = document.getElementById('searchInfo');
-      if (matches.length === 0) {
-        info.textContent = 'No matches in document';
-        info.className = 'search-info not-found';
-      } else {
-        info.textContent = `Page ${currentMatchIndex + 1} of ${matches.length} with matches`;
-        info.className = 'search-info found';
-      }
+      highlightContiguousMatch();
     }
 
     window.findText = findText;
-    
-    window.findNext = async function() {
-      if (matches.length === 0) {
-        await findText();
-        return;
-      }
-      currentMatchIndex = (currentMatchIndex + 1) % matches.length;
-      await goToMatch(currentMatchIndex);
-      updateSearchInfo();
-    };
-
-    window.findPrev = async function() {
-      if (matches.length === 0) {
-        await findText();
-        return;
-      }
-      currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
-      await goToMatch(currentMatchIndex);
-      updateSearchInfo();
-    };
+    window.findNext = () => goToPage(currentPage + 1);
+    window.findPrev = () => goToPage(currentPage - 1);
 
     window.goToPage = async function(num) {
       const pageNum = Math.max(1, Math.min(pdf.numPages, parseInt(num) || 1));
@@ -500,13 +455,13 @@
 
     window.zoomIn = async function() {
       scale = Math.min(3, scale + 0.25);
-      document.getElementById('zoomLevel').textContent = Math.round(scale / 1.5 * 100) + '%';
+      document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
       await renderPage(currentPage);
     };
 
     window.zoomOut = async function() {
       scale = Math.max(0.5, scale - 0.25);
-      document.getElementById('zoomLevel').textContent = Math.round(scale / 1.5 * 100) + '%';
+      document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
       await renderPage(currentPage);
     };
 
@@ -519,8 +474,6 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target.id === 'searchInput') findText();
-      if (e.key === 'F3' || (e.ctrlKey && e.key === 'g')) { e.preventDefault(); window.findNext(); }
-      if (e.shiftKey && e.key === 'F3') { e.preventDefault(); window.findPrev(); }
     });
 
     init();

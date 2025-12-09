@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Scale, Search, Sparkles, Gavel, Home, Car, Users, Building2, Heart,
   Briefcase, Vote, DollarSign, Shield, TreePine, GraduationCap,
-  ChevronDown, X, ArrowLeft
+  ChevronDown, X, ArrowLeft, Dices
 } from "lucide-react";
 
 const categories = [
@@ -100,12 +100,51 @@ export default function LandingPage() {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [expandedSubtopic, setExpandedSubtopic] = useState<number | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Navigate to search page
   const handleSearch = (searchQuery?: string) => {
     const q = searchQuery || query;
     if (q.trim()) {
       router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+    }
+  };
+
+  const handleFeelingLucky = async () => {
+    if (isRolling) return;
+    
+    setIsRolling(true);
+    setQuery("");
+    
+    try {
+      const response = await fetch("/api/lucky", { method: "POST" });
+      const data = await response.json();
+      
+      if (data.query) {
+        // Typewriter effect
+        const text = data.query;
+        let i = 0;
+        setQuery("");
+        
+        const typeInterval = setInterval(() => {
+          if (i < text.length) {
+            setQuery(text.slice(0, i + 1));
+            i++;
+          } else {
+            clearInterval(typeInterval);
+            setIsRolling(false);
+            // Auto-submit after a short delay
+            setTimeout(() => {
+              router.push(`/search?q=${encodeURIComponent(text)}`);
+            }, 400);
+          }
+        }, 30);
+      } else {
+        setIsRolling(false);
+      }
+    } catch (error) {
+      console.error("Feeling lucky error:", error);
+      setIsRolling(false);
     }
   };
 
@@ -130,7 +169,32 @@ export default function LandingPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        {isRolling && (
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/30 rounded-full blur-3xl animate-ping" />
+        )}
       </div>
+
+      {/* Rolling Animation Styles */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes dice-roll {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          25% { transform: rotate(90deg) scale(1.1); }
+          50% { transform: rotate(180deg) scale(1); }
+          75% { transform: rotate(270deg) scale(1.1); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .dice-rolling {
+          animation: dice-roll 0.5s ease-in-out infinite;
+        }
+        .shimmer-border {
+          background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7, #34d399, #10b981);
+          background-size: 200% 100%;
+          animation: shimmer 1s linear infinite;
+        }
+      `}} />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
@@ -154,33 +218,74 @@ export default function LandingPage() {
 
         {/* Search Box */}
         <div className="relative mb-8 max-w-3xl mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500 rounded-2xl blur opacity-30" />
-          <div className="relative bg-slate-900 rounded-2xl p-2 border border-white/10">
+          <div className={`absolute -inset-1 rounded-2xl blur opacity-30 transition-all duration-300 ${
+            isRolling 
+              ? "shimmer-border" 
+              : "bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500"
+          }`} />
+          <div className={`relative bg-slate-900 rounded-2xl p-2 border transition-colors duration-300 ${
+            isRolling ? "border-emerald-500/50" : "border-white/10"
+          }`}>
             <div className="flex items-center gap-3">
               <div className="pl-4"><Search className="w-5 h-5 text-slate-400" /></div>
               <input
+                ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Ask any question about Colorado law..."
-                className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none py-4 text-lg"
+                placeholder={isRolling ? "Rolling the dice..." : "Ask any question about Colorado law..."}
+                className={`flex-1 bg-transparent placeholder-slate-500 outline-none py-4 text-lg transition-colors ${
+                  isRolling ? "text-emerald-400" : "text-white"
+                }`}
+                disabled={isRolling}
               />
-              {query && (
+              {query && !isRolling && (
                 <button onClick={() => setQuery("")} className="p-2 text-slate-500 hover:text-white">
                   <X className="w-4 h-4" />
                 </button>
               )}
+              
+              {/* Feeling Lucky Button */}
+              <button
+                onClick={handleFeelingLucky}
+                disabled={isRolling}
+                className={`group relative px-4 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 overflow-hidden ${
+                  isRolling
+                    ? "bg-emerald-600 text-white cursor-wait"
+                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25"
+                }`}
+                title="Get a random legal question!"
+              >
+                {/* Sparkle effects on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute top-1 left-2 w-1 h-1 bg-white rounded-full animate-ping" style={{ animationDuration: "1s" }} />
+                  <div className="absolute bottom-2 right-3 w-1 h-1 bg-white rounded-full animate-ping" style={{ animationDuration: "1.5s", animationDelay: "0.2s" }} />
+                  <div className="absolute top-2 right-6 w-0.5 h-0.5 bg-white rounded-full animate-ping" style={{ animationDuration: "1.2s", animationDelay: "0.5s" }} />
+                </div>
+                
+                <Dices className={`w-5 h-5 ${isRolling ? "dice-rolling" : "group-hover:rotate-12 transition-transform"}`} />
+                <span className="hidden sm:inline">{isRolling ? "Rolling..." : "Lucky"}</span>
+              </button>
+
               <button
                 onClick={() => handleSearch()}
-                disabled={!query.trim()}
+                disabled={!query.trim() || isRolling}
                 className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl font-semibold 
                          hover:from-amber-400 hover:to-orange-500 transition-all disabled:opacity-50 
                          disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-amber-500/25"
               >
-                <Search className="w-5 h-5" /> Search
+                <Search className="w-5 h-5" /> <span className="hidden sm:inline">Search</span>
               </button>
             </div>
+          </div>
+          
+          {/* Lucky button hint */}
+          <div className="flex justify-center mt-3">
+            <p className="text-xs text-slate-500 flex items-center gap-1.5">
+              <Dices className="w-3 h-3" />
+              <span>Click <span className="text-emerald-400 font-medium">Lucky</span> to discover a random legal question</span>
+            </p>
           </div>
         </div>
 
@@ -309,7 +414,7 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-3 gap-4 text-sm text-slate-400">
               <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Ask in plain English</p></div>
               <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Be specific with your question</p></div>
-              <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Or browse categories above</p></div>
+              <div className="flex gap-2"><span className="text-emerald-400">🎲</span><p>Try "Lucky" for a random question!</p></div>
             </div>
           </div>
         )}

@@ -6,7 +6,7 @@ import { ColoradoLegislatureChunks } from "@colorado-legislature-explorer/sdk";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("q");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  const limit = parseInt(searchParams.get("limit") || "5");
 
   if (!query) {
     return NextResponse.json({ error: "Missing query parameter" }, { status: 400 });
