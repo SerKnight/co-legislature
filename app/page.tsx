@@ -239,11 +239,11 @@ export default function LandingPage() {
                 placeholder={isRolling ? "Rolling the dice..." : "Ask any question about Colorado law..."}
                 className={`flex-1 bg-transparent placeholder-slate-500 outline-none py-4 text-lg transition-colors ${
                   isRolling ? "text-yellow-400" : "text-white"
-                }`}
+                } cursor-text`}
                 disabled={isRolling}
               />
               {query && !isRolling && (
-                <button onClick={() => setQuery("")} className="p-2 text-slate-500 hover:text-white">
+                <button onClick={() => setQuery("")} className="p-2 text-slate-500 hover:text-white cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -252,7 +252,7 @@ export default function LandingPage() {
               <button
                 onClick={handleFeelingLucky}
                 disabled={isRolling}
-                className={`group relative px-4 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 overflow-hidden ${
+                className={`group relative px-4 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 overflow-hidden cursor-pointer ${
                   isRolling
                     ? "bg-yellow-600 text-slate-900 cursor-wait"
                     : "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-slate-900 hover:shadow-lg hover:shadow-yellow-500/25"
@@ -274,7 +274,7 @@ export default function LandingPage() {
                 disabled={!query.trim() || isRolling}
                 className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 rounded-xl font-semibold 
                          hover:from-orange-500 hover:to-orange-600 transition-all disabled:opacity-50 
-                         disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-orange-600/25"
+                         disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-orange-600/25 cursor-pointer"
               >
                 <Search className="w-5 h-5" /> <span className="hidden sm:inline">Search</span>
               </button>
@@ -293,7 +293,7 @@ export default function LandingPage() {
         {/* Back Button */}
         {selectedCategory && (
           <div className="mb-4">
-            <button onClick={handleBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
+            <button onClick={handleBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm cursor-pointer">
               <ArrowLeft className="w-4 h-4" /> Back to all categories
             </button>
           </div>
@@ -312,7 +312,7 @@ export default function LandingPage() {
                 <button
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat)}
-                  className={`px-4 py-2 rounded-full border text-sm transition-all flex items-center gap-2
+                  className={`px-4 py-2 rounded-full border text-sm transition-all flex items-center gap-2 cursor-pointer
                     ${isSelected 
                       ? `bg-gradient-to-r ${cat.color} border-transparent text-white shadow-lg` 
                       : `${cat.pill} border hover:scale-105`}`}
@@ -339,7 +339,7 @@ export default function LandingPage() {
                   <button
                     key={idx}
                     onClick={() => setExpandedSubtopic(isExpanded ? null : idx)}
-                    className={`px-4 py-3 rounded-xl border text-left transition-all
+                    className={`px-4 py-3 rounded-xl border text-left transition-all cursor-pointer
                       ${isExpanded 
                         ? `bg-gradient-to-r ${selectedCategory.color} border-transparent text-white` 
                         : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300"}`}
@@ -369,7 +369,7 @@ export default function LandingPage() {
                     onClick={() => handleSearch(question)}
                     className="w-full text-left px-4 py-3 rounded-lg text-sm text-slate-300 
                              bg-white/5 hover:bg-white/10 hover:text-white transition-all 
-                             flex items-center gap-3 group"
+                             flex items-center gap-3 group cursor-pointer"
                   >
                     <Search className="w-4 h-4 text-slate-500 group-hover:text-orange-400 transition-colors flex-shrink-0" />
                     <span>{question}</span>
@@ -394,7 +394,7 @@ export default function LandingPage() {
                     key={cat.id}
                     onClick={() => handleCategorySelect(cat)}
                     className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 
-                             hover:border-white/20 transition-all text-left group"
+                             hover:border-white/20 transition-all text-left group cursor-pointer"
                   >
                     <Icon className="w-5 h-5 text-slate-400 group-hover:text-white mb-2 transition-colors" />
                     <span className="font-medium text-slate-300 group-hover:text-white text-sm">

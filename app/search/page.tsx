@@ -362,7 +362,7 @@ function SearchContent() {
           <div className="flex items-center gap-2 sm:gap-4">
             <Link
               href="/"
-              className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white transition-colors flex-shrink-0"
+              className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <div className="flex items-center gap-1 sm:gap-2">
@@ -396,7 +396,7 @@ function SearchContent() {
                   <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg h-full">
                     <button
                       onClick={() => setResultLimit(Math.max(1, resultLimit - 1))}
-                      className="px-2 py-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-l-lg transition-colors"
+                      className="px-2 py-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-l-lg transition-colors cursor-pointer"
                       aria-label="Decrease results"
                     >
                       <ChevronDown className="w-4 h-4" />
@@ -407,7 +407,7 @@ function SearchContent() {
                     </div>
                     <button
                       onClick={() => setResultLimit(Math.min(25, resultLimit + 1))}
-                      className="px-2 py-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-r-lg transition-colors"
+                      className="px-2 py-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-r-lg transition-colors cursor-pointer"
                       aria-label="Increase results"
                     >
                       <ChevronUp className="w-4 h-4" />
@@ -444,7 +444,7 @@ function SearchContent() {
               <button
                 onClick={() => handleSearch()}
                 disabled={isLoading || !query.trim()}
-                className="px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-medium rounded-lg transition-colors flex items-center gap-2 text-sm flex-shrink-0"
+                className="px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-medium rounded-lg transition-colors flex items-center gap-2 text-sm flex-shrink-0 cursor-pointer"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span className="hidden sm:inline">Search</span>
@@ -502,7 +502,7 @@ function SearchContent() {
                     <button
                       onClick={() => setShowResultsPane(false)}
                       title="Collapse results"
-                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0"
+                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0 cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -518,7 +518,7 @@ function SearchContent() {
                         <button
                           key={result.id}
                           onClick={() => handleSelectResult(result)}
-                          className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all ${
+                          className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all cursor-pointer ${
                             isSelected
                               ? "bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10"
                               : "bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-700/30"
@@ -559,7 +559,7 @@ function SearchContent() {
                   <button
                     onClick={() => setShowResultsPane(true)}
                     title={`Results (${results.length})`}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-700/50 hover:bg-slate-700 text-amber-400 transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-700/50 hover:bg-slate-700 text-amber-400 transition-colors cursor-pointer"
                   >
                     <List className="w-4 h-4" />
                   </button>
@@ -592,14 +592,14 @@ function SearchContent() {
                         <button
                           onClick={() => setShowPdfPane(false)}
                           title="Collapse viewer"
-                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setSelectedResult(null)}
                           title="Clear selection"
-                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -609,7 +609,7 @@ function SearchContent() {
                     {/* Matched text toggle */}
                     <button
                       onClick={() => setShowMatchedText(!showMatchedText)}
-                      className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3 transition-colors flex-shrink-0"
+                      className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3 transition-colors flex-shrink-0 cursor-pointer"
                     >
                       <span className="flex items-center gap-2 truncate">
                         <FileText className="w-3 h-3 flex-shrink-0" />
@@ -650,7 +650,7 @@ function SearchContent() {
                   <button
                     onClick={() => setShowPdfPane(true)}
                     title="Open document viewer"
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
                       selectedResult
                         ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
                         : "bg-slate-700/50 hover:bg-slate-700 text-slate-400"
@@ -682,7 +682,7 @@ function SearchContent() {
                     <button
                       onClick={() => setShowSummaryPanel(false)}
                       title="Collapse summary"
-                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors"
+                      className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -732,7 +732,7 @@ function SearchContent() {
                   <button
                     onClick={() => setShowSummaryPanel(true)}
                     title="Open AI summary"
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
                       aiSummary
                         ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
                         : "bg-slate-700/50 hover:bg-slate-700 text-slate-400"
