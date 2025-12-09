@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Viewer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1e293b;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .toolbar {
+      background: #334155;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #475569;
+      flex-shrink: 0;
+    }
+    .toolbar input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 14px;
+      min-width: 0;
+    }
+    .toolbar input[type="text"]:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+    .toolbar button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #475569;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .toolbar button:hover { background: #64748b; }
+    .toolbar button.primary { background: #f59e0b; color: #1e293b; }
+    .toolbar button.primary:hover { background: #fbbf24; }
+    .search-info {
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .search-info.found { color: #4ade80; }
+    .search-info.not-found { color: #f87171; }
+    .viewer {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    .page-container {
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .page-container canvas {
+      display: block;
+    }
+    .text-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .text-layer span {
+      position: absolute;
+      white-space: pre;
+      color: transparent;
+      pointer-events: auto;
+    }
+    .text-layer span::selection {
+      background: rgba(245, 158, 11, 0.3);
+    }
+    .text-layer span.highlight {
+      background: rgba(245, 158, 11, 0.4);
+      border-radius: 2px;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 18px;
+      color: #94a3b8;
+    }
+    .bottom-bar {
+      background: #334155;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border-top: 1px solid #475569;
+      flex-shrink: 0;
+    }
+    .bottom-bar button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      background: #475569;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .bottom-bar button:hover { background: #64748b; }
+    .bottom-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    .page-info input {
+      width: 50px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #e2e8f0;
+      text-align: center;
+      font-size: 14px;
+    }
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .download-btn {
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .download-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top: Search Only -->
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search in document...">
+    <button onclick="search()" class="primary">Find</button>
+    <button onclick="prevMatch()">◂ Prev</button>
+    <button onclick="nextMatch()">Next ▸</button>
+    <div id="searchInfo" class="search-info"></div>
+  </div>
+
+  <!-- PDF Content -->
+  <div class="viewer" id="viewer">
+    <div class="loading">Loading PDF...</div>
+  </div>
+
+  <!-- Bottom: Pagination, Zoom, Download -->
+  <div class="bottom-bar">
+    <button class="download-btn" onclick="downloadPdf()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/>
+      </svg>
+      Download
+    </button>
+    
+    <div class="page-info">
+      <button onclick="prevPage()" id="prevBtn">◂</button>
+      <input type="number" id="pageInput" min="1" onchange="goToPage(this.value)">
+      <span>of <span id="totalPages">-</span></span>
+      <button onclick="nextPage()" id="nextBtn">▸</button>
+    </div>
+
+    <div class="zoom-controls">
+      <button onclick="zoomOut()">−</button>
+      <span id="zoomLevel">100%</span>
+      <button onclick="zoomIn()">+</button>
+    </div>
+  </div>
+
+  <script type="module">
+    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
+    const params = new URLSearchParams(window.location.search);
+    const fileUrl = params.get('file');
+    const searchQuery = params.get('search') || '';
+    const initialPage = parseInt(window.location.hash.replace('#page=', '')) || 1;
+
+    let pdf = null;
+    let currentPage = initialPage;
+    let scale = 1.5;
+    let matches = [];
+    let currentMatchIndex = -1;
+
+    document.getElementById('searchInput').value = searchQuery;
+
+    async function loadPDF() {
+      try {
+        pdf = await pdfjsLib.getDocument(fileUrl).promise;
+        document.getElementById('totalPages').textContent = pdf.numPages;
+        document.getElementById('pageInput').max = pdf.numPages;
+        await renderAllPages();
+        
+        if (searchQuery) {
+          setTimeout(() => search(), 500);
+        }
+      } catch (err) {
+        document.getElementById('viewer').innerHTML = `<div class="loading">Error loading PDF: ${err.message}</div>`;
+      }
+    }
+
+    async function renderAllPages() {
+      const viewer = document.getElementById('viewer');
+      viewer.innerHTML = '';
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+
+        const container = document.createElement('div');
+        container.className = 'page-container';
+        container.id = `page-${pageNum}`;
+        container.style.width = viewport.width + 'px';
+        container.style.height = viewport.height + 'px';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        container.appendChild(canvas);
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const textContent = await page.getTextContent();
+        const textLayer = document.createElement('div');
+        textLayer.className = 'text-layer';
+        
+        textContent.items.forEach((item, idx) => {
+          const span = document.createElement('span');
+          span.textContent = item.str;
+          span.dataset.page = pageNum;
+          span.dataset.idx = idx;
+          
+          const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+          span.style.left = tx[4] + 'px';
+          span.style.top = (viewport.height - tx[5]) + 'px';
+          span.style.fontSize = Math.abs(tx[0]) + 'px';
+          span.style.fontFamily = item.fontName || 'sans-serif';
+          
+          textLayer.appendChild(span);
+        });
+
+        container.appendChild(textLayer);
+        viewer.appendChild(container);
+      }
+
+      document.getElementById('pageInput').value = currentPage;
+      scrollToPage(currentPage);
+      updateNavButtons();
+    }
+
+    function scrollToPage(pageNum) {
+      const el = document.getElementById(`page-${pageNum}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function updateNavButtons() {
+      document.getElementById('prevBtn').disabled = currentPage <= 1;
+      document.getElementById('nextBtn').disabled = currentPage >= pdf.numPages;
+    }
+
+    window.search = function() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!query) return;
+
+      document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+      matches = [];
+      currentMatchIndex = -1;
+
+      document.querySelectorAll('.text-layer span').forEach(span => {
+        if (span.textContent.toLowerCase().includes(query)) {
+          span.classList.add('highlight');
+          matches.push(span);
+        }
+      });
+
+      updateSearchInfo();
+      if (matches.length > 0) {
+        currentMatchIndex = 0;
+        scrollToMatch();
+      }
+    };
+
+    window.nextMatch = function() {
+      if (matches.length === 0) return;
+      currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+      scrollToMatch();
+    };
+
+    window.prevMatch = function() {
+      if (matches.length === 0) return;
+      currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+      scrollToMatch();
+    };
+
+    function scrollToMatch() {
+      matches[currentMatchIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      updateSearchInfo();
+    }
+
+    function updateSearchInfo() {
+      const info = document.getElementById('searchInfo');
+      if (matches.length === 0) {
+        info.textContent = 'No matches';
+        info.className = 'search-info not-found';
+      } else {
+        info.textContent = `${currentMatchIndex + 1} of ${matches.length}`;
+        info.className = 'search-info found';
+      }
+    }
+
+    window.goToPage = function(num) {
+      currentPage = Math.max(1, Math.min(pdf.numPages, parseInt(num) || 1));
+      document.getElementById('pageInput').value = currentPage;
+      scrollToPage(currentPage);
+      updateNavButtons();
+    };
+
+    window.prevPage = () => goToPage(currentPage - 1);
+    window.nextPage = () => goToPage(currentPage + 1);
+
+    window.zoomIn = async function() {
+      scale = Math.min(3, scale + 0.25);
+      document.getElementById('zoomLevel').textContent = Math.round(scale * 100 / 1.5) + '%';
+      await renderAllPages();
+      if (document.getElementById('searchInput').value) search();
+    };
+
+    window.zoomOut = async function() {
+      scale = Math.max(0.5, scale - 0.25);
+      document.getElementById('zoomLevel').textContent = Math.round(scale * 100 / 1.5) + '%';
+      await renderAllPages();
+      if (document.getElementById('searchInput').value) search();
+    };
+
+    window.downloadPdf = function() {
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = fileUrl.split('/').pop() || 'document.pdf';
+      a.click();
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.id === 'searchInput') search();
+      if (e.key === 'F3' || (e.ctrlKey && e.key === 'g')) { e.preventDefault(); nextMatch(); }
+      if (e.shiftKey && e.key === 'F3') { e.preventDefault(); prevMatch(); }
+    });
+
+    loadPDF();
+  </script>
+</body>
+</html>
