@@ -146,18 +146,22 @@ function SearchContent() {
     }
   };
 
-  // Simple markdown renderer
+  // Enhanced markdown renderer with better formatting
   const renderMarkdown = (text: string) => {
     const lines = text.split('\n');
     const elements: ReactNode[] = [];
     let inList = false;
     let listItems: string[] = [];
+    let inCodeBlock = false;
+    let codeBlockContent: string[] = [];
+    let inTable = false;
+    let tableRows: string[][] = [];
 
     const flushList = () => {
       if (listItems.length > 0) {
         elements.push(
-          <ul key={`list-${elements.length}`} className="list-disc list-inside space-y-1 mb-3 text-slate-300">
-            {listItems.map((item, i) => <li key={i}>{formatInline(item)}</li>)}
+          <ul key={`list-${elements.length}`} className="list-disc list-inside space-y-1 mb-4 text-slate-300 ml-2">
+            {listItems.map((item, i) => <li key={i} className="leading-relaxed">{formatInline(item)}</li>)}
           </ul>
         );
         listItems = [];
@@ -165,35 +169,132 @@ function SearchContent() {
       inList = false;
     };
 
+    const flushCodeBlock = () => {
+      if (codeBlockContent.length > 0) {
+        elements.push(
+          <pre key={`code-${elements.length}`} className="bg-slate-900 border border-slate-700 rounded-lg p-4 mb-4 overflow-x-auto">
+            <code className="text-amber-300 text-xs font-mono leading-relaxed">
+              {codeBlockContent.join('\n')}
+            </code>
+          </pre>
+        );
+        codeBlockContent = [];
+      }
+      inCodeBlock = false;
+    };
+
+    const flushTable = () => {
+      if (tableRows.length > 0) {
+        elements.push(
+          <div key={`table-${elements.length}`} className="overflow-x-auto mb-4">
+            <table className="min-w-full border-collapse border border-slate-600">
+              <tbody>
+                {tableRows.map((row, rowIdx) => (
+                  <tr key={rowIdx} className={rowIdx === 0 ? "bg-slate-700/50" : "bg-slate-800/30"}>
+                    {row.map((cell, cellIdx) => (
+                      <td
+                        key={cellIdx}
+                        className="border border-slate-600 px-3 py-2 text-xs text-slate-300"
+                      >
+                        {formatInline(cell.trim())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        tableRows = [];
+      }
+      inTable = false;
+    };
+
     const formatInline = (text: string) => {
       // Bold
       text = text.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-100 font-semibold">$1</strong>');
       // Italic
-      text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-      // Code
-      text = text.replace(/`(.+?)`/g, '<code class="bg-slate-700 px-1 rounded text-amber-300 text-xs">$1</code>');
+      text = text.replace(/\*(.+?)\*/g, '<em class="text-slate-200 italic">$1</em>');
+      // Inline code
+      text = text.replace(/`(.+?)`/g, '<code class="bg-slate-700 px-1.5 py-0.5 rounded text-amber-300 text-xs font-mono">$1</code>');
+      // Links
+      text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">$1</a>');
       return <span dangerouslySetInnerHTML={{ __html: text }} />;
     };
 
     lines.forEach((line, i) => {
       const trimmed = line.trim();
       
-      // Headers
-      if (trimmed.startsWith('### ')) {
+      // Code blocks (```)
+      if (trimmed.startsWith('```')) {
+        if (inCodeBlock) {
+          flushCodeBlock();
+        } else {
+          flushList();
+          flushTable();
+          inCodeBlock = true;
+        }
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeBlockContent.push(line);
+        return;
+      }
+
+      // Horizontal rule
+      if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
         flushList();
-        elements.push(<h4 key={i} className="text-sm font-semibold text-slate-200 mt-4 mb-2">{trimmed.slice(4)}</h4>);
+        flushTable();
+        elements.push(<hr key={`hr-${elements.length}`} className="my-4 border-t border-slate-700" />);
+        return;
+      }
+
+      // Headers
+      if (trimmed.startsWith('# ')) {
+        flushList();
+        flushTable();
+        elements.push(<h2 key={i} className="text-2xl font-bold text-white mt-6 mb-3">{trimmed.slice(2)}</h2>);
       } else if (trimmed.startsWith('## ')) {
         flushList();
-        elements.push(<h3 key={i} className="text-base font-semibold text-slate-100 mt-4 mb-2">{trimmed.slice(3)}</h3>);
-      } else if (trimmed.startsWith('# ')) {
+        flushTable();
+        elements.push(<h3 key={i} className="text-xl font-bold text-slate-100 mt-5 mb-2">{trimmed.slice(3)}</h3>);
+      } else if (trimmed.startsWith('### ')) {
         flushList();
-        elements.push(<h2 key={i} className="text-lg font-bold text-white mt-4 mb-2">{trimmed.slice(2)}</h2>);
+        flushTable();
+        elements.push(<h4 key={i} className="text-lg font-semibold text-slate-200 mt-4 mb-2">{trimmed.slice(4)}</h4>);
+      } else if (trimmed.startsWith('#### ')) {
+        flushList();
+        flushTable();
+        elements.push(<h5 key={i} className="text-base font-semibold text-slate-200 mt-3 mb-2">{trimmed.slice(5)}</h5>);
       }
-      // List items
+      // Blockquote
+      else if (trimmed.startsWith('> ')) {
+        flushList();
+        flushTable();
+        elements.push(
+          <blockquote key={i} className="border-l-4 border-amber-500 pl-4 py-2 mb-3 italic text-slate-300 bg-slate-900/30 rounded">
+            {formatInline(trimmed.slice(2))}
+          </blockquote>
+        );
+      }
+      // Table rows
+      else if (trimmed.includes('|')) {
+        if (!inTable) {
+          inTable = true;
+        }
+        const cells = trimmed.split('|').slice(1, -1); // Remove empty first and last elements
+        // Skip separator rows
+        if (!cells.every(cell => /^-+$/.test(cell.trim()))) {
+          tableRows.push(cells);
+        }
+      }
+      // Unordered list items
       else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         inList = true;
         listItems.push(trimmed.slice(2));
       }
+      // Ordered list items
       else if (/^\d+\.\s/.test(trimmed)) {
         inList = true;
         listItems.push(trimmed.replace(/^\d+\.\s/, ''));
@@ -201,15 +302,24 @@ function SearchContent() {
       // Empty line
       else if (trimmed === '') {
         flushList();
+        if (inTable) {
+          flushTable();
+        }
+        // Don't add extra spacing for consecutive empty lines
       }
       // Regular paragraph
       else {
         flushList();
+        flushTable();
         elements.push(<p key={i} className="text-slate-300 mb-3 leading-relaxed">{formatInline(trimmed)}</p>);
       }
     });
 
+    // Flush any remaining content
     flushList();
+    flushCodeBlock();
+    flushTable();
+
     return elements;
   };
 
@@ -344,7 +454,7 @@ function SearchContent() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-screen-2xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 xl:px-6 flex flex-col">
+      <main className="flex-1 max-w-screen-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 xl:px-6 flex flex-col">
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
             {error}
@@ -554,7 +664,7 @@ function SearchContent() {
             </div>
 
             {/* AI Summary Pane */}
-            <div className={`transition-all duration-300 flex flex-col min-h-0 ${
+            <div className={`transition-all duration-300 flex flex-col min-h-0 h-screen ${
               showSummaryPanel 
                 ? "flex-1 xl:min-w-[300px]" 
                 : "w-full xl:w-16 xl:flex-shrink-0"
@@ -579,7 +689,7 @@ function SearchContent() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="flex-1 p-4 overflow-y-auto max-h-[calc(100vh-200px)]">
                     {isSummaryLoading ? (
                       <div className="flex flex-col items-center justify-center py-8 gap-3">
                         <div className="relative">
