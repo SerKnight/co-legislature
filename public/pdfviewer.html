@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDF Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf_viewer.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -57,45 +58,54 @@
     }
     .search-info.found { color: #4ade80; }
     .search-info.not-found { color: #f87171; }
+    .search-info.searching { color: #60a5fa; }
     .viewer {
       flex: 1;
       overflow: auto;
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      justify-content: center;
+      align-items: flex-start;
       padding: 20px;
-      gap: 20px;
+      background: #0f172a;
     }
     .page-container {
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      background: white;
     }
-    .page-container canvas {
-      display: block;
-    }
-    .text-layer {
+    .page-container canvas { display: block; }
+    .textLayer {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      text-align: initial;
+      inset: 0;
       overflow: hidden;
+      opacity: 1;
       line-height: 1;
-      pointer-events: none;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      text-size-adjust: none;
+      forced-color-adjust: none;
+      transform-origin: 0 0;
+      z-index: 2;
     }
-    .text-layer span {
+    .textLayer :is(span, br) {
+      color: transparent;
       position: absolute;
       white-space: pre;
-      color: transparent;
-      pointer-events: auto;
+      cursor: text;
+      transform-origin: 0% 0%;
     }
-    .text-layer span::selection {
-      background: rgba(245, 158, 11, 0.3);
+    .textLayer span.markedContent { top: 0; height: 0; }
+    .textLayer .highlight {
+      margin: -1px;
+      padding: 1px;
+      background-color: rgba(245, 158, 11, 0.4);
+      border-radius: 4px;
     }
-    .text-layer span.highlight {
-      background: rgba(245, 158, 11, 0.4);
-      border-radius: 2px;
+    .textLayer .highlight.current {
+      background-color: rgba(249, 115, 22, 0.7);
     }
+    .textLayer ::selection { background: rgba(245, 158, 11, 0.4); }
     .loading {
       display: flex;
       align-items: center;
@@ -104,6 +114,16 @@
       font-size: 18px;
       color: #94a3b8;
     }
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #475569;
+      border-top-color: #f59e0b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .bottom-bar {
       background: #334155;
       padding: 8px 16px;
@@ -133,7 +153,7 @@
       color: #94a3b8;
     }
     .page-info input {
-      width: 50px;
+      width: 60px;
       padding: 4px 8px;
       border-radius: 4px;
       border: 1px solid #475569;
@@ -156,28 +176,25 @@
       align-items: center;
       gap: 4px;
     }
-    .download-btn svg {
-      width: 16px;
-      height: 16px;
-    }
+    .download-btn svg { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
-  <!-- Top: Search Only -->
   <div class="toolbar">
     <input type="text" id="searchInput" placeholder="Search in document...">
-    <button onclick="search()" class="primary">Find</button>
-    <button onclick="prevMatch()">◂ Prev</button>
-    <button onclick="nextMatch()">Next ▸</button>
+    <button onclick="findText()" class="primary">Find</button>
+    <button onclick="findPrev()">◂ Prev</button>
+    <button onclick="findNext()">Next ▸</button>
     <div id="searchInfo" class="search-info"></div>
   </div>
 
-  <!-- PDF Content -->
   <div class="viewer" id="viewer">
-    <div class="loading">Loading PDF...</div>
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      Loading PDF...
+    </div>
   </div>
 
-  <!-- Bottom: Pagination, Zoom, Download -->
   <div class="bottom-bar">
     <button class="download-btn" onclick="downloadPdf()">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -185,14 +202,12 @@
       </svg>
       Download
     </button>
-    
     <div class="page-info">
       <button onclick="prevPage()" id="prevBtn">◂</button>
-      <input type="number" id="pageInput" min="1" onchange="goToPage(this.value)">
+      <input type="number" id="pageInput" min="1" onchange="goToPage(parseInt(this.value))">
       <span>of <span id="totalPages">-</span></span>
       <button onclick="nextPage()" id="nextBtn">▸</button>
     </div>
-
     <div class="zoom-controls">
       <button onclick="zoomOut()">−</button>
       <span id="zoomLevel">100%</span>
@@ -201,7 +216,9 @@
   </div>
 
   <script type="module">
-    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    import { TextLayer } from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
 
     const params = new URLSearchParams(window.location.search);
@@ -212,174 +229,301 @@
     let pdf = null;
     let currentPage = initialPage;
     let scale = 1.5;
+    let currentTextLayer = null;
     let matches = [];
     let currentMatchIndex = -1;
 
-    document.getElementById('searchInput').value = searchQuery;
+    // Normalize text for comparison - collapse whitespace, lowercase
+    function normalizeText(text) {
+      return text.replace(/\s+/g, ' ').trim().toLowerCase();
+    }
 
-    async function loadPDF() {
+    // Extract meaningful search words from the searchable text
+    // We'll search for individual words that are likely to be unique
+    function extractSearchWords(text) {
+      const normalized = normalizeText(text);
+      // Split into words, filter out very short/common words
+      const words = normalized.split(' ').filter(w => w.length > 3);
+      // Return unique words
+      return [...new Set(words)];
+    }
+
+    // For display in search box, show a truncated version
+    const displayQuery = searchQuery.length > 100 
+      ? searchQuery.substring(0, 100) + '...' 
+      : searchQuery;
+    document.getElementById('searchInput').value = displayQuery;
+    
+    // Store the full query for searching
+    let fullSearchQuery = searchQuery;
+
+    async function init() {
       try {
         pdf = await pdfjsLib.getDocument(fileUrl).promise;
         document.getElementById('totalPages').textContent = pdf.numPages;
         document.getElementById('pageInput').max = pdf.numPages;
-        await renderAllPages();
+        document.getElementById('pageInput').value = currentPage;
+        
+        await renderPage(currentPage);
+        updateNavButtons();
         
         if (searchQuery) {
-          setTimeout(() => search(), 500);
+          setTimeout(() => findTextOnCurrentPage(), 500);
         }
       } catch (err) {
-        document.getElementById('viewer').innerHTML = `<div class="loading">Error loading PDF: ${err.message}</div>`;
+        document.getElementById('viewer').innerHTML = 
+          `<div class="loading">Error: ${err.message}</div>`;
       }
     }
 
-    async function renderAllPages() {
+    async function renderPage(pageNum) {
       const viewer = document.getElementById('viewer');
-      viewer.innerHTML = '';
-
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      
+      try {
         const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale });
 
+        viewer.innerHTML = '';
+
         const container = document.createElement('div');
         container.className = 'page-container';
-        container.id = `page-${pageNum}`;
-        container.style.width = viewport.width + 'px';
-        container.style.height = viewport.height + 'px';
+        container.style.width = `${viewport.width}px`;
+        container.style.height = `${viewport.height}px`;
+        container.style.position = 'relative';
 
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
+        canvas.style.display = 'block';
         container.appendChild(canvas);
 
+        const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
         const textContent = await page.getTextContent();
-        const textLayer = document.createElement('div');
-        textLayer.className = 'text-layer';
-        
-        textContent.items.forEach((item, idx) => {
-          const span = document.createElement('span');
-          span.textContent = item.str;
-          span.dataset.page = pageNum;
-          span.dataset.idx = idx;
-          
-          const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-          span.style.left = tx[4] + 'px';
-          span.style.top = (viewport.height - tx[5]) + 'px';
-          span.style.fontSize = Math.abs(tx[0]) + 'px';
-          span.style.fontFamily = item.fontName || 'sans-serif';
-          
-          textLayer.appendChild(span);
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
+        container.appendChild(textLayerDiv);
+
+        const textLayer = new TextLayer({
+          textContentSource: textContent,
+          container: textLayerDiv,
+          viewport: viewport,
         });
+        await textLayer.render();
+        currentTextLayer = textLayerDiv;
 
-        container.appendChild(textLayer);
         viewer.appendChild(container);
+
+        // Auto-highlight on current page if we have a search query
+        if (fullSearchQuery) {
+          highlightMatchingSpans();
+        }
+        
+      } catch (err) {
+        console.error('Render error:', err);
+        viewer.innerHTML = `<div class="loading">Error rendering page: ${err.message}</div>`;
       }
-
-      document.getElementById('pageInput').value = currentPage;
-      scrollToPage(currentPage);
-      updateNavButtons();
     }
 
-    function scrollToPage(pageNum) {
-      const el = document.getElementById(`page-${pageNum}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // Highlight spans that contain words from our search text
+    function highlightMatchingSpans() {
+      if (!currentTextLayer || !fullSearchQuery) return;
 
-    function updateNavButtons() {
-      document.getElementById('prevBtn').disabled = currentPage <= 1;
-      document.getElementById('nextBtn').disabled = currentPage >= pdf.numPages;
-    }
+      // Clear old highlights
+      currentTextLayer.querySelectorAll('.highlight').forEach(el => {
+        el.classList.remove('highlight', 'current');
+      });
 
-    window.search = function() {
-      const query = document.getElementById('searchInput').value.toLowerCase().trim();
-      if (!query) return;
+      const searchWords = extractSearchWords(fullSearchQuery);
+      if (searchWords.length === 0) return;
 
-      document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-      matches = [];
-      currentMatchIndex = -1;
+      const spans = currentTextLayer.querySelectorAll('span');
+      let matchCount = 0;
+      let firstMatch = null;
 
-      document.querySelectorAll('.text-layer span').forEach(span => {
-        if (span.textContent.toLowerCase().includes(query)) {
+      spans.forEach(span => {
+        const spanText = normalizeText(span.textContent);
+        // Check if this span contains any of our search words
+        const hasMatch = searchWords.some(word => spanText.includes(word));
+        if (hasMatch) {
           span.classList.add('highlight');
-          matches.push(span);
+          matchCount++;
+          if (!firstMatch) firstMatch = span;
         }
       });
 
-      updateSearchInfo();
-      if (matches.length > 0) {
-        currentMatchIndex = 0;
-        scrollToMatch();
+      // Mark first match as current and scroll to it
+      if (firstMatch) {
+        firstMatch.classList.add('current');
+        setTimeout(() => {
+          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
       }
-    };
 
-    window.nextMatch = function() {
-      if (matches.length === 0) return;
-      currentMatchIndex = (currentMatchIndex + 1) % matches.length;
-      scrollToMatch();
-    };
+      updateSearchInfoDisplay(matchCount);
+    }
 
-    window.prevMatch = function() {
-      if (matches.length === 0) return;
-      currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
-      scrollToMatch();
-    };
+    function updateSearchInfoDisplay(count) {
+      const info = document.getElementById('searchInfo');
+      if (count === 0) {
+        info.textContent = 'No matches on page';
+        info.className = 'search-info not-found';
+      } else {
+        info.textContent = `${count} matches on page`;
+        info.className = 'search-info found';
+      }
+    }
 
-    function scrollToMatch() {
-      matches[currentMatchIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Search just on current page (for initial load)
+    function findTextOnCurrentPage() {
+      highlightMatchingSpans();
+    }
+
+    // Full document search (when user clicks Find)
+    async function findText() {
+      const inputQuery = document.getElementById('searchInput').value.trim();
+      if (!inputQuery) return;
+      
+      // Update the full search query if user typed something new
+      fullSearchQuery = inputQuery;
+
+      matches = [];
+      currentMatchIndex = -1;
+      
+      const info = document.getElementById('searchInfo');
+      info.textContent = 'Searching...';
+      info.className = 'search-info searching';
+
+      const searchWords = extractSearchWords(fullSearchQuery);
+      if (searchWords.length === 0) {
+        info.textContent = 'No searchable terms';
+        info.className = 'search-info not-found';
+        return;
+      }
+
+      // Search all pages
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        const pageText = normalizeText(textContent.items.map(item => item.str).join(' '));
+        
+        // Check if any search words appear on this page
+        const hasMatch = searchWords.some(word => pageText.includes(word));
+        if (hasMatch) {
+          matches.push({ page: pageNum });
+        }
+
+        if (pageNum % 50 === 0) {
+          info.textContent = `Searching... ${pageNum}/${pdf.numPages}`;
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      if (matches.length > 0) {
+        // Find first match on or after current page
+        let idx = matches.findIndex(m => m.page >= currentPage);
+        if (idx === -1) idx = 0;
+        currentMatchIndex = idx;
+        await goToMatch(currentMatchIndex);
+      }
+
       updateSearchInfo();
+    }
+
+    async function goToMatch(idx) {
+      if (idx < 0 || idx >= matches.length) return;
+      
+      const match = matches[idx];
+      if (match.page !== currentPage) {
+        currentPage = match.page;
+        document.getElementById('pageInput').value = currentPage;
+        await renderPage(currentPage);
+        updateNavButtons();
+      } else {
+        highlightMatchingSpans();
+      }
     }
 
     function updateSearchInfo() {
       const info = document.getElementById('searchInfo');
       if (matches.length === 0) {
-        info.textContent = 'No matches';
+        info.textContent = 'No matches in document';
         info.className = 'search-info not-found';
       } else {
-        info.textContent = `${currentMatchIndex + 1} of ${matches.length}`;
+        info.textContent = `Page ${currentMatchIndex + 1} of ${matches.length} with matches`;
         info.className = 'search-info found';
       }
     }
 
-    window.goToPage = function(num) {
-      currentPage = Math.max(1, Math.min(pdf.numPages, parseInt(num) || 1));
+    window.findText = findText;
+    
+    window.findNext = async function() {
+      if (matches.length === 0) {
+        await findText();
+        return;
+      }
+      currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+      await goToMatch(currentMatchIndex);
+      updateSearchInfo();
+    };
+
+    window.findPrev = async function() {
+      if (matches.length === 0) {
+        await findText();
+        return;
+      }
+      currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+      await goToMatch(currentMatchIndex);
+      updateSearchInfo();
+    };
+
+    window.goToPage = async function(num) {
+      const pageNum = Math.max(1, Math.min(pdf.numPages, parseInt(num) || 1));
+      if (pageNum === currentPage) return;
+      currentPage = pageNum;
       document.getElementById('pageInput').value = currentPage;
-      scrollToPage(currentPage);
+      await renderPage(currentPage);
       updateNavButtons();
     };
 
     window.prevPage = () => goToPage(currentPage - 1);
     window.nextPage = () => goToPage(currentPage + 1);
 
+    function updateNavButtons() {
+      document.getElementById('prevBtn').disabled = currentPage <= 1;
+      document.getElementById('nextBtn').disabled = currentPage >= pdf.numPages;
+    }
+
     window.zoomIn = async function() {
       scale = Math.min(3, scale + 0.25);
-      document.getElementById('zoomLevel').textContent = Math.round(scale * 100 / 1.5) + '%';
-      await renderAllPages();
-      if (document.getElementById('searchInput').value) search();
+      document.getElementById('zoomLevel').textContent = Math.round(scale / 1.5 * 100) + '%';
+      await renderPage(currentPage);
     };
 
     window.zoomOut = async function() {
       scale = Math.max(0.5, scale - 0.25);
-      document.getElementById('zoomLevel').textContent = Math.round(scale * 100 / 1.5) + '%';
-      await renderAllPages();
-      if (document.getElementById('searchInput').value) search();
+      document.getElementById('zoomLevel').textContent = Math.round(scale / 1.5 * 100) + '%';
+      await renderPage(currentPage);
     };
 
     window.downloadPdf = function() {
       const a = document.createElement('a');
       a.href = fileUrl;
-      a.download = fileUrl.split('/').pop() || 'document.pdf';
+      a.download = 'document.pdf';
       a.click();
     };
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.target.id === 'searchInput') search();
-      if (e.key === 'F3' || (e.ctrlKey && e.key === 'g')) { e.preventDefault(); nextMatch(); }
-      if (e.shiftKey && e.key === 'F3') { e.preventDefault(); prevMatch(); }
+      if (e.key === 'Enter' && e.target.id === 'searchInput') findText();
+      if (e.key === 'F3' || (e.ctrlKey && e.key === 'g')) { e.preventDefault(); window.findNext(); }
+      if (e.shiftKey && e.key === 'F3') { e.preventDefault(); window.findPrev(); }
     });
 
-    loadPDF();
+    init();
   </script>
 </body>
 </html>

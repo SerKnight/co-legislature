@@ -45,7 +45,6 @@ function SearchContent() {
   const [showMatchedText, setShowMatchedText] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Run search on mount if query exists
   useEffect(() => {
     if (initialQuery) {
       handleSearch(initialQuery);
@@ -56,7 +55,6 @@ function SearchContent() {
     const q = searchQuery || query;
     if (!q.trim()) return;
 
-    // Update URL
     router.replace(`/search?q=${encodeURIComponent(q.trim())}`, { scroll: false });
 
     setIsLoading(true);
@@ -87,15 +85,20 @@ function SearchContent() {
     setShowMatchedText(false);
   };
 
-  // Build PDF viewer URL with page and search
-  const getPdfUrl = (result: SearchResult) => {
-    const searchText = result.searchableText
+  // Clean searchable text - just normalize whitespace, keep the actual text
+  const cleanSearchText = (text: string) => {
+    return text
       .replace(/\r\n/g, " ")
       .replace(/\n/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 50);
+      .trim();
+  };
 
+  // Build PDF viewer URL with page and the actual searchable text
+  const getPdfUrl = (result: SearchResult) => {
+    const cleanedText = cleanSearchText(result.searchableText);
+    // Take first ~500 chars to avoid URL length issues, but keep meaningful text
+    const searchText = cleanedText.slice(0, 500);
     const pdfPath = encodeURIComponent(`/api/pdf/${result.uuid}`);
     const search = encodeURIComponent(searchText);
     return `/pdfviewer.html?file=${pdfPath}&search=${search}#page=${result.pageNumber}`;
@@ -115,7 +118,6 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      {/* Header */}
       <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
@@ -132,7 +134,6 @@ function SearchContent() {
               </div>
             </Link>
 
-            {/* Search Box */}
             <div className="flex-1 flex gap-2">
               <div className="relative flex-1 max-w-2xl">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -159,14 +160,12 @@ function SearchContent() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Error */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
             {error}
           </div>
         )}
 
-        {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="flex items-center gap-3 text-slate-400">
@@ -176,7 +175,6 @@ function SearchContent() {
           </div>
         )}
 
-        {/* No Results */}
         {!isLoading && hasSearched && results.length === 0 && (
           <div className="text-center py-20">
             <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -185,10 +183,8 @@ function SearchContent() {
           </div>
         )}
 
-        {/* Results */}
         {!isLoading && results.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Results List */}
             <div className="lg:col-span-1">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-slate-400">
@@ -241,11 +237,9 @@ function SearchContent() {
               </div>
             </div>
 
-            {/* PDF Viewer */}
             <div className="lg:col-span-2 lg:sticky lg:top-20 lg:self-start">
               {selectedResult ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                  {/* Header */}
                   <div className="p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-sm text-slate-100 truncate">
@@ -263,31 +257,25 @@ function SearchContent() {
                     </button>
                   </div>
 
-                  {/* Collapsible Matched Text */}
                   <button
                     onClick={() => setShowMatchedText(!showMatchedText)}
                     className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-3"
                   >
                     <span className="flex items-center gap-2">
                       <FileText className="w-3 h-3" />
-                      Matched text
+                      Matched text (used for PDF search)
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${showMatchedText ? "rotate-180" : ""}`} />
                   </button>
 
                   {showMatchedText && (
                     <div className="p-3 border-b border-slate-700 bg-slate-900/50">
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        {selectedResult.searchableText
-                          .replace(/\r\n/g, " ")
-                          .replace(/\n/g, " ")
-                          .replace(/\s+/g, " ")
-                          .trim()}
+                      <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                        {cleanSearchText(selectedResult.searchableText)}
                       </p>
                     </div>
                   )}
 
-                  {/* PDF Viewer */}
                   <div className="bg-slate-900" style={{ height: "70vh" }}>
                     <iframe
                       src={getPdfUrl(selectedResult)}
@@ -306,7 +294,6 @@ function SearchContent() {
           </div>
         )}
 
-        {/* Initial State */}
         {!isLoading && !hasSearched && (
           <div className="text-center py-20">
             <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />

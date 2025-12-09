@@ -3,225 +3,105 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Scale,
-  Search,
-  Sparkles,
-  Gavel,
-  Home,
-  Car,
-  Users,
-  Building2,
-  Heart,
-  Briefcase,
-  Vote,
-  DollarSign,
-  Shield,
-  TreePine,
-  GraduationCap,
-  ChevronRight,
-  ArrowRight,
+  Scale, Search, Sparkles, Gavel, Home, Car, Users, Building2, Heart,
+  Briefcase, Vote, DollarSign, Shield, TreePine, GraduationCap,
+  ChevronDown, X, ArrowLeft
 } from "lucide-react";
 
 const categories = [
-  {
-    id: "criminal",
-    name: "Criminal Law",
-    icon: Gavel,
-    color: "from-red-500 to-rose-600",
-    questions: [
-      "What are the penalties for first-time DUI in Colorado?",
-      "What constitutes self-defense under Colorado law?",
-      "What are the marijuana possession limits in Colorado?",
-      "Can I expunge my criminal record in Colorado?",
-      "What is the statute of limitations for assault charges?",
-      "What defines domestic violence under Colorado statutes?",
-      "Is it illegal to record someone without their consent?",
-      "What are the penalties for theft under $500?",
-    ],
-  },
-  {
-    id: "property",
-    name: "Property & Real Estate",
-    icon: Home,
-    color: "from-amber-500 to-orange-600",
-    questions: [
-      "How does eminent domain work in Colorado?",
-      "What are a landlord's obligations for repairs and maintenance?",
-      "Can my landlord evict me without written notice?",
-      "What are the rules for security deposit returns?",
-      "How do easements work on private property in Colorado?",
-      "What are squatter's rights and adverse possession laws?",
-      "What disclosures are required when selling a home?",
-      "Can an HOA foreclose on my property for unpaid dues?",
-    ],
-  },
-  {
-    id: "traffic",
-    name: "Traffic & Vehicles",
-    icon: Car,
-    color: "from-blue-500 to-cyan-600",
-    questions: [
-      "What are Colorado's DUI blood alcohol limits and penalties?",
-      "How many points before my license gets suspended?",
-      "What are the penalties for driving without insurance?",
-      "What are the child car seat and seat belt requirements?",
-      "Is lane splitting legal for motorcycles in Colorado?",
-      "What happens if caught driving with a suspended license?",
-      "What are the legal window tint limits in Colorado?",
-      "How long after an accident can I file an injury claim?",
-    ],
-  },
-  {
-    id: "family",
-    name: "Family Law",
-    icon: Users,
-    color: "from-pink-500 to-rose-500",
-    questions: [
-      "What's the process for filing for divorce in Colorado?",
-      "How is child custody determined by Colorado courts?",
-      "How is child support calculated in Colorado?",
-      "Can grandparents petition for visitation rights?",
-      "What is the difference between legal separation and divorce?",
-      "How do I modify an existing custody agreement?",
-      "What are the rules for alimony and spousal maintenance?",
-      "How do I establish legal paternity in Colorado?",
-    ],
-  },
-  {
-    id: "business",
-    name: "Business & Commerce",
-    icon: Building2,
-    color: "from-emerald-500 to-teal-600",
-    questions: [
-      "How do I register an LLC in Colorado?",
-      "What business licenses are required to operate in Colorado?",
-      "How do non-compete agreements work in Colorado?",
-      "What are the rules for classifying independent contractors?",
-      "What are the requirements for selling alcohol in Colorado?",
-      "How do I dissolve a business entity in Colorado?",
-      "What consumer protection laws apply to Colorado businesses?",
-      "What are the franchise disclosure requirements?",
-    ],
-  },
-  {
-    id: "health",
-    name: "Health & Safety",
-    icon: Heart,
-    color: "from-rose-500 to-pink-600",
-    questions: [
-      "What are the medical marijuana laws in Colorado?",
-      "What are patient rights in Colorado hospitals?",
-      "How do advance directives and living wills work?",
-      "What are the requirements for mental health holds?",
-      "What are the vaccination requirements for school enrollment?",
-      "How does medical malpractice work in Colorado?",
-      "What are the end-of-life options laws in Colorado?",
-      "What food safety regulations apply to restaurants?",
-    ],
-  },
-  {
-    id: "employment",
-    name: "Employment & Labor",
-    icon: Briefcase,
-    color: "from-violet-500 to-purple-600",
-    questions: [
-      "What is the minimum wage in Colorado?",
-      "What are the overtime pay requirements in Colorado?",
-      "Can I be fired without cause in Colorado?",
-      "What workplace discrimination protections exist?",
-      "What are the required meal and rest break rules?",
-      "How do I file a wage claim with the state?",
-      "What whistleblower protections exist in Colorado?",
-      "How does workers compensation work in Colorado?",
-    ],
-  },
-  {
-    id: "elections",
-    name: "Elections & Voting",
-    icon: Vote,
-    color: "from-indigo-500 to-blue-600",
-    questions: [
-      "What are the rules about firearms near polling places?",
-      "How do I register to vote in Colorado?",
-      "What identification is required to vote in Colorado?",
-      "How does mail-in ballot voting work in Colorado?",
-      "Can people with felony convictions vote in Colorado?",
-      "What are the campaign finance disclosure requirements?",
-      "What are the rules for ballot initiatives and referendums?",
-      "What are the restrictions on electioneering near polls?",
-    ],
-  },
-  {
-    id: "taxes",
-    name: "Taxes & Revenue",
-    icon: DollarSign,
-    color: "from-green-500 to-emerald-600",
-    questions: [
-      "How are property taxes calculated in Colorado?",
-      "How do I appeal my property tax assessment?",
-      "What tax credits are available for senior citizens?",
-      "How does the TABOR amendment affect taxes?",
-      "What are the sales tax rules for online purchases?",
-      "What income is exempt from Colorado state taxes?",
-      "What are the penalties for tax evasion in Colorado?",
-      "What are the marijuana excise tax rates?",
-    ],
-  },
-  {
-    id: "civil_rights",
-    name: "Civil Rights",
-    icon: Shield,
-    color: "from-purple-500 to-indigo-600",
-    questions: [
-      "What are my rights if I'm stopped or arrested by police?",
-      "What constitutes illegal search and seizure?",
-      "What anti-discrimination laws apply to housing?",
-      "Can my employer discriminate based on age?",
-      "What are the rules for police use of force?",
-      "Can I legally record police officers in public?",
-      "How do I file a civil rights complaint in Colorado?",
-      "What protections exist for LGBTQ individuals?",
-    ],
-  },
-  {
-    id: "environment",
-    name: "Environment & Water",
-    icon: TreePine,
-    color: "from-teal-500 to-green-600",
-    questions: [
-      "How do water rights work in Colorado?",
-      "Can I legally collect rainwater on my property?",
-      "How do I obtain a water well permit?",
-      "What are the regulations for oil and gas drilling?",
-      "How do environmental impact assessments work?",
-      "What are the penalties for environmental violations?",
-      "How do conservation easements work in Colorado?",
-      "What are the protected species regulations?",
-    ],
-  },
-  {
-    id: "education",
-    name: "Education",
-    icon: GraduationCap,
-    color: "from-cyan-500 to-blue-500",
-    questions: [
-      "What are the homeschooling requirements in Colorado?",
-      "How does public school funding work in Colorado?",
-      "What are the special education requirements?",
-      "Can students be expelled for off-campus conduct?",
-      "What are the rules for charter school enrollment?",
-      "What are the teacher certification requirements?",
-      "How do I appeal a school disciplinary decision?",
-      "What are the immunization requirements for schools?",
-    ],
-  },
+  { id: "criminal", name: "Criminal Law", icon: Gavel, color: "from-red-500 to-rose-600", pill: "bg-red-500/20 text-red-300 border-red-500/30",
+    subtopics: [
+      { name: "DUI & Impaired Driving", questions: ["What are the penalties for first-time DUI?", "What are Colorado's blood alcohol limits?", "Can I refuse a breathalyzer test?", "How long does a DUI stay on my record?"] },
+      { name: "Drug Offenses", questions: ["What are marijuana possession limits?", "What are penalties for drug paraphernalia?", "Is CBD oil legal in Colorado?", "What is a DUID charge?"] },
+      { name: "Violent Crimes", questions: ["What constitutes self-defense?", "What defines domestic violence?", "What is the statute of limitations for assault?", "What are harassment laws?"] },
+      { name: "Theft & Property Crimes", questions: ["What are penalties for theft under $500?", "What constitutes burglary vs robbery?", "What is criminal mischief?", "Can I be charged for shoplifting?"] },
+      { name: "Record & Expungement", questions: ["Can I expunge my criminal record?", "What crimes can be sealed?", "How long until I can seal my record?", "Does expungement apply to DUI?"] },
+    ]},
+  { id: "property", name: "Property & Real Estate", icon: Home, color: "from-amber-500 to-orange-600", pill: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    subtopics: [
+      { name: "Landlord-Tenant", questions: ["Can my landlord evict me without notice?", "What are security deposit return rules?", "What repairs must landlords make?", "How much notice to end a lease?"] },
+      { name: "Buying & Selling", questions: ["What disclosures are required when selling?", "How do title searches work?", "What are closing cost responsibilities?", "Can a seller back out of a contract?"] },
+      { name: "Property Rights", questions: ["How does eminent domain work?", "How do easements work?", "What are squatter's rights?", "Can I build a fence on my property line?"] },
+      { name: "HOA & Communities", questions: ["Can an HOA foreclose on my property?", "How do I fight an HOA fine?", "What can HOAs regulate?", "Can I opt out of an HOA?"] },
+    ]},
+  { id: "traffic", name: "Traffic & Vehicles", icon: Car, color: "from-blue-500 to-cyan-600", pill: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    subtopics: [
+      { name: "License & Points", questions: ["How many points before suspension?", "How do I get my license back?", "Can I attend traffic school?", "How long do points stay on my record?"] },
+      { name: "Insurance & Registration", questions: ["What are penalties for no insurance?", "What's required for vehicle registration?", "Do I need an emissions test?", "What if I'm hit by uninsured driver?"] },
+      { name: "Traffic Violations", questions: ["What are speeding ticket penalties?", "Is lane splitting legal?", "What are window tint limits?", "Can I fight a red light camera ticket?"] },
+      { name: "Accidents & Claims", questions: ["How long to file an injury claim?", "What if the other driver fled?", "Do I have to report an accident?", "What's Colorado's fault system?"] },
+    ]},
+  { id: "family", name: "Family Law", icon: Users, color: "from-pink-500 to-rose-500", pill: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+    subtopics: [
+      { name: "Divorce & Separation", questions: ["What's the divorce filing process?", "Legal separation vs divorce?", "How is property divided?", "How long does divorce take?"] },
+      { name: "Child Custody", questions: ["How is custody determined?", "Can I modify a custody agreement?", "What is parental relocation law?", "What are grandparent visitation rights?"] },
+      { name: "Child & Spousal Support", questions: ["How is child support calculated?", "What are alimony rules?", "Can support orders be modified?", "What if they don't pay support?"] },
+      { name: "Paternity & Adoption", questions: ["How do I establish paternity?", "What is the adoption process?", "Can a father sign away rights?", "What are step-parent adoption rules?"] },
+    ]},
+  { id: "business", name: "Business & Commerce", icon: Building2, color: "from-emerald-500 to-teal-600", pill: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    subtopics: [
+      { name: "Formation & Registration", questions: ["How do I register an LLC?", "LLC vs Corporation differences?", "What business licenses are needed?", "How do I get an EIN?"] },
+      { name: "Employment & Contractors", questions: ["Independent contractor rules?", "How do non-competes work?", "What are hiring requirements?", "Can I require drug testing?"] },
+      { name: "Licensing & Permits", questions: ["Requirements for selling alcohol?", "How do I get a contractor license?", "What permits for food service?", "Home business regulations?"] },
+      { name: "Dissolution & Disputes", questions: ["How do I dissolve a business?", "What are breach of contract remedies?", "How do partnership disputes work?", "What is commercial arbitration?"] },
+    ]},
+  { id: "employment", name: "Employment & Labor", icon: Briefcase, color: "from-violet-500 to-purple-600", pill: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+    subtopics: [
+      { name: "Wages & Hours", questions: ["What is minimum wage in Colorado?", "What are overtime requirements?", "Required meal and rest breaks?", "How do I file a wage claim?"] },
+      { name: "Termination & Rights", questions: ["Can I be fired without cause?", "What is wrongful termination?", "What are final paycheck rules?", "Do I get paid for unused PTO?"] },
+      { name: "Discrimination & Harassment", questions: ["What discrimination protections exist?", "How do I file an EEOC complaint?", "What constitutes hostile workplace?", "What are retaliation protections?"] },
+      { name: "Safety & Benefits", questions: ["How does workers comp work?", "What whistleblower protections exist?", "What are OSHA requirements?", "Can I be fired for filing workers comp?"] },
+    ]},
+  { id: "taxes", name: "Taxes & Revenue", icon: DollarSign, color: "from-green-500 to-emerald-600", pill: "bg-green-500/20 text-green-300 border-green-500/30",
+    subtopics: [
+      { name: "Property Taxes", questions: ["How are property taxes calculated?", "How do I appeal my assessment?", "What exemptions are available?", "When are property taxes due?"] },
+      { name: "Income & Sales Tax", questions: ["What income is exempt?", "How does sales tax work online?", "What are Colorado tax brackets?", "How do I file state taxes?"] },
+      { name: "Credits & Exemptions", questions: ["Tax credits for seniors?", "What is the TABOR refund?", "Homestead exemption rules?", "What are energy tax credits?"] },
+      { name: "Special Taxes", questions: ["Marijuana excise tax rates?", "How do estate taxes work?", "What are lodging tax rules?", "Vehicle ownership taxes?"] },
+    ]},
+  { id: "civil_rights", name: "Civil Rights", icon: Shield, color: "from-purple-500 to-indigo-600", pill: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    subtopics: [
+      { name: "Police Interactions", questions: ["Rights if stopped by police?", "Can I record police in public?", "What are police use of force rules?", "What is illegal search and seizure?"] },
+      { name: "Discrimination", questions: ["Housing discrimination laws?", "Employment discrimination protections?", "Public accommodation rights?", "LGBTQ protections in Colorado?"] },
+      { name: "Filing Complaints", questions: ["How to file a civil rights complaint?", "What is the CCRD?", "Can I sue for civil rights violations?", "What damages can I recover?"] },
+    ]},
+  { id: "environment", name: "Environment & Water", icon: TreePine, color: "from-teal-500 to-green-600", pill: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+    subtopics: [
+      { name: "Water Rights", questions: ["How do water rights work?", "Can I collect rainwater?", "How to get a well permit?", "What are water court procedures?"] },
+      { name: "Land Use", questions: ["How do conservation easements work?", "What are zoning regulations?", "Can I subdivide my property?", "What are setback requirements?"] },
+      { name: "Regulations & Permits", questions: ["Oil and gas drilling regulations?", "Environmental impact assessments?", "Penalties for environmental violations?", "Protected species regulations?"] },
+    ]},
+  { id: "elections", name: "Elections & Voting", icon: Vote, color: "from-indigo-500 to-blue-600", pill: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+    subtopics: [
+      { name: "Voter Registration", questions: ["How do I register to vote?", "Can felons vote in Colorado?", "What ID is required to vote?", "Can I register on election day?"] },
+      { name: "Voting Process", questions: ["How does mail-in voting work?", "Where is my polling place?", "Can I track my ballot?", "What if my ballot is rejected?"] },
+      { name: "Campaign & Elections", questions: ["Campaign finance requirements?", "Rules for ballot initiatives?", "What is electioneering?", "Firearms near polling places?"] },
+    ]},
+  { id: "health", name: "Health & Safety", icon: Heart, color: "from-rose-500 to-pink-600", pill: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+    subtopics: [
+      { name: "Medical Rights", questions: ["What are patient rights?", "How do advance directives work?", "What are informed consent rules?", "Can I access my medical records?"] },
+      { name: "Cannabis", questions: ["Medical marijuana laws?", "How to get a medical card?", "Where can I consume cannabis?", "What are possession limits?"] },
+      { name: "Mental Health", questions: ["Requirements for mental health holds?", "What is a M-1 hold?", "Patient rights in psychiatric care?", "How to contest involuntary commitment?"] },
+      { name: "Public Health", questions: ["School vaccination requirements?", "Food safety regulations?", "What are end-of-life options?", "Medical malpractice rules?"] },
+    ]},
+  { id: "education", name: "Education", icon: GraduationCap, color: "from-cyan-500 to-blue-500", pill: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+    subtopics: [
+      { name: "Homeschool & Private", questions: ["What are homeschooling requirements?", "Charter school enrollment rules?", "Private school regulations?", "What testing is required?"] },
+      { name: "Public Schools", questions: ["How does school funding work?", "Can I choose which school?", "What are transfer rules?", "School immunization requirements?"] },
+      { name: "Special Education", questions: ["What are special education requirements?", "How do IEPs work?", "What is a 504 plan?", "How to dispute special ed decisions?"] },
+      { name: "Discipline & Rights", questions: ["Can students be expelled for off-campus conduct?", "How to appeal disciplinary decisions?", "What are student speech rights?", "Search and seizure in schools?"] },
+    ]},
 ];
+
+type Category = typeof categories[number];
 
 export default function LandingPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [expandedSubtopic, setExpandedSubtopic] = useState<number | null>(null);
 
+  // Navigate to search page
   const handleSearch = (searchQuery?: string) => {
     const q = searchQuery || query;
     if (q.trim()) {
@@ -229,18 +109,32 @@ export default function LandingPage() {
     }
   };
 
+  const handleCategorySelect = (cat: Category) => {
+    if (selectedCategory?.id === cat.id) {
+      setSelectedCategory(null);
+      setExpandedSubtopic(null);
+    } else {
+      setSelectedCategory(cat);
+      setExpandedSubtopic(null);
+    }
+  };
+
+  const handleBack = () => {
+    setSelectedCategory(null);
+    setExpandedSubtopic(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative">
-      {/* Animated background */}
+      {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <span className="text-sm text-slate-300">AI-Powered Semantic Search</span>
@@ -253,20 +147,17 @@ export default function LandingPage() {
               Colorado Law Search
             </h1>
           </div>
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-            Search the entire Colorado Revised Statutes in plain English.
-            Our AI finds the most relevant laws for your question.
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Search the Colorado Revised Statutes in plain English, or browse by topic below.
           </p>
         </div>
 
         {/* Search Box */}
-        <div className="relative mb-16 max-w-3xl mx-auto">
+        <div className="relative mb-8 max-w-3xl mx-auto">
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500 rounded-2xl blur opacity-30" />
           <div className="relative bg-slate-900 rounded-2xl p-2 border border-white/10">
             <div className="flex items-center gap-3">
-              <div className="pl-4">
-                <Search className="w-5 h-5 text-slate-400" />
-              </div>
+              <div className="pl-4"><Search className="w-5 h-5 text-slate-400" /></div>
               <input
                 type="text"
                 value={query}
@@ -275,6 +166,11 @@ export default function LandingPage() {
                 placeholder="Ask any question about Colorado law..."
                 className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none py-4 text-lg"
               />
+              {query && (
+                <button onClick={() => setQuery("")} className="p-2 text-slate-500 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => handleSearch()}
                 disabled={!query.trim()}
@@ -282,91 +178,145 @@ export default function LandingPage() {
                          hover:from-amber-400 hover:to-orange-500 transition-all disabled:opacity-50 
                          disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-amber-500/25"
               >
-                <Search className="w-5 h-5" />
-                Search
+                <Search className="w-5 h-5" /> Search
               </button>
             </div>
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <ArrowRight className="w-4 h-4" />
-            Browse by Category — Click to see example questions
+        {/* Back Button */}
+        {selectedCategory && (
+          <div className="mb-4">
+            <button onClick={handleBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
+              <ArrowLeft className="w-4 h-4" /> Back to all categories
+            </button>
+          </div>
+        )}
+
+        {/* Step 1: Category Pills */}
+        <div className="mb-6">
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            {selectedCategory ? "Selected Area" : "① Choose a Legal Area"}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categories.map((cat) => {
+          <div className="flex flex-wrap gap-2">
+            {(selectedCategory ? [selectedCategory] : categories).map((cat) => {
               const Icon = cat.icon;
-              const isExpanded = expandedCategory === cat.id;
-
+              const isSelected = selectedCategory?.id === cat.id;
               return (
-                <div key={cat.id} className="relative">
-                  <button
-                    onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
-                    className={`w-full p-4 rounded-xl border transition-all text-left group
-                      ${isExpanded
-                        ? `bg-gradient-to-br ${cat.color} border-transparent shadow-lg`
-                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Icon className={`w-5 h-5 ${isExpanded ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
-                        <span className={`font-medium ${isExpanded ? "text-white" : "text-slate-300"}`}>
-                          {cat.name}
-                        </span>
-                      </div>
-                      <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90 text-white" : "text-slate-500"}`} />
-                    </div>
-                  </button>
-
-                  {/* Expanded Questions */}
-                  {isExpanded && (
-                    <div className="mt-2 p-3 bg-slate-900/90 backdrop-blur rounded-xl border border-white/10 space-y-1">
-                      {cat.questions.map((question, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleSearch(question)}
-                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-300 
-                                   hover:bg-white/10 hover:text-white transition-colors flex items-start gap-2"
-                        >
-                          <Search className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-500" />
-                          <span>{question}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat)}
+                  className={`px-4 py-2 rounded-full border text-sm transition-all flex items-center gap-2
+                    ${isSelected 
+                      ? `bg-gradient-to-r ${cat.color} border-transparent text-white shadow-lg` 
+                      : `${cat.pill} border hover:scale-105`}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {cat.name}
+                  {isSelected && <X className="w-3.5 h-3.5 ml-1 opacity-70" />}
+                </button>
               );
             })}
           </div>
         </div>
 
-        {/* Tips */}
-        <div className="mt-12 p-6 bg-white/5 rounded-2xl border border-white/10">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-            Tips for Better Search Results
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm text-slate-400">
-            <div className="flex gap-3">
-              <span className="text-amber-400">✦</span>
-              <p>Ask in plain English — "Can my landlord evict me without notice?"</p>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-amber-400">✦</span>
-              <p>Be specific — "DUI penalties for first offense" works better than just "DUI"</p>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-amber-400">✦</span>
-              <p>Include context — "small business LLC registration requirements"</p>
+        {/* Step 2: Subtopics */}
+        {selectedCategory && (
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              ② What specifically about {selectedCategory.name}?
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {selectedCategory.subtopics.map((subtopic, idx) => {
+                const isExpanded = expandedSubtopic === idx;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setExpandedSubtopic(isExpanded ? null : idx)}
+                    className={`px-4 py-3 rounded-xl border text-left transition-all
+                      ${isExpanded 
+                        ? `bg-gradient-to-r ${selectedCategory.color} border-transparent text-white` 
+                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300"}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{subtopic.name}</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Step 3: Questions */}
+        {selectedCategory && expandedSubtopic !== null && (
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              ③ Common Questions — Click to search
+            </h2>
+            <div className="p-4 bg-slate-900/80 backdrop-blur rounded-xl border border-white/10">
+              <div className="grid md:grid-cols-2 gap-2">
+                {selectedCategory.subtopics[expandedSubtopic].questions.map((question, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSearch(question)}
+                    className="w-full text-left px-4 py-3 rounded-lg text-sm text-slate-300 
+                             bg-white/5 hover:bg-white/10 hover:text-white transition-all 
+                             flex items-center gap-3 group"
+                  >
+                    <Search className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors flex-shrink-0" />
+                    <span>{question}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Category Grid (when none selected) */}
+        {!selectedCategory && (
+          <div className="mt-8">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+              Or browse all categories
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat)}
+                    className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 
+                             hover:border-white/20 transition-all text-left group"
+                  >
+                    <Icon className="w-5 h-5 text-slate-400 group-hover:text-white mb-2 transition-colors" />
+                    <span className="font-medium text-slate-300 group-hover:text-white text-sm">
+                      {cat.name}
+                    </span>
+                    <p className="text-xs text-slate-500 mt-1">{cat.subtopics.length} topics</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tips */}
+        {!selectedCategory && (
+          <div className="mt-8 p-5 bg-white/5 rounded-2xl border border-white/10">
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">💡 Search Tips</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-sm text-slate-400">
+              <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Ask in plain English</p></div>
+              <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Be specific with your question</p></div>
+              <div className="flex gap-2"><span className="text-amber-400">✦</span><p>Or browse categories above</p></div>
+            </div>
+          </div>
+        )}
 
         {/* Disclaimer */}
         <div className="mt-8 text-center text-xs text-slate-600 border-t border-white/5 pt-6">
-          <p>⚖️ This tool searches Colorado Revised Statutes for informational purposes only. Not legal advice. Consult a licensed attorney for legal matters.</p>
+          <p>⚖️ For informational purposes only. Not legal advice. Consult a licensed attorney.</p>
         </div>
       </div>
     </div>
