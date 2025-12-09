@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,8 @@ import {
   Bot,
   ChevronRight,
   ChevronLeft,
+  List, // added icon for results toggle
+  Maximize2, // added icon for expand-all
 } from "lucide-react";
 
 interface SearchResult {
@@ -56,6 +58,20 @@ function SearchContent() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [showSummaryPanel, setShowSummaryPanel] = useState(true);
 
+  // New: pane visibility states for Results and PDF Viewer
+  const [showResultsPane, setShowResultsPane] = useState(true);
+  const [showPdfPane, setShowPdfPane] = useState(true);
+
+  // Responsive initial state: on small screens collapse side panels by default
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window.innerWidth;
+    // mobile: only PDF (or results) visible as needed; desktop: all visible
+    setShowResultsPane(w >= 1024); // show results on >= lg
+    setShowPdfPane(true); // keep PDF viewer open by default
+    setShowSummaryPanel(w >= 1280); // show AI summary on xl+
+  }, []);
+
   useEffect(() => {
     if (initialQuery) {
       handleSearch(initialQuery);
@@ -87,7 +103,11 @@ function SearchContent() {
       if (data.results.length > 0) {
         setSelectedResult(data.results[0]);
         fetchAiSummary(q, data.results);
+        // ensure PDF pane visible when selecting a result
+        setShowPdfPane(true);
       }
+      // ensure results pane visible when search returns results
+      setShowResultsPane(true);
     } catch (err) {
       setError("Failed to search. Please try again.");
       console.error(err);
@@ -99,6 +119,7 @@ function SearchContent() {
   const handleSelectResult = (result: SearchResult) => {
     setSelectedResult(result);
     setShowMatchedText(false);
+    setShowPdfPane(true);
   };
 
   // Fetch AI summary
@@ -107,8 +128,8 @@ function SearchContent() {
     setAiSummary(null);
     
     try {
-      // Combine chunks for the summary
-      const searchResultChunks = results.map((chunk) => chunk.id)
+
+      const searchResultChunks = results.map((chunk) => chunk.chunk)
 
       const response = await fetch("/api/summary", {
         method: "POST",
@@ -130,7 +151,7 @@ function SearchContent() {
   // Simple markdown renderer
   const renderMarkdown = (text: string) => {
     const lines = text.split('\n');
-    const elements: JSX.Element[] = [];
+    const elements: ReactNode[] = [];
     let inList = false;
     let listItems: string[] = [];
 
@@ -319,6 +340,42 @@ function SearchContent() {
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span className="hidden sm:inline">Search</span>
               </button>
+
+              {/* Pane toggle buttons (Results / PDF / Summary) */}
+              <div className="hidden sm:flex items-center gap-2 ml-2">
+                <button
+                  onClick={() => setShowResultsPane((s) => !s)}
+                  title={showResultsPane ? "Hide Results" : "Show Results"}
+                  className={`p-2 rounded-md transition-colors ${showResultsPane ? "bg-slate-700 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                  aria-pressed={showResultsPane}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowPdfPane((s) => !s)}
+                  title={showPdfPane ? "Hide Document Viewer" : "Show Document Viewer"}
+                  className={`p-2 rounded-md transition-colors ${showPdfPane ? "bg-slate-700 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                  aria-pressed={showPdfPane}
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowSummaryPanel((s) => !s)}
+                  title={showSummaryPanel ? "Hide AI Summary" : "Show AI Summary"}
+                  className={`p-2 rounded-md transition-colors ${showSummaryPanel ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                  aria-pressed={showSummaryPanel}
+                >
+                  <Bot className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => { setShowResultsPane(true); setShowPdfPane(true); setShowSummaryPanel(true); }}
+                  title="Expand all panes"
+                  className="p-2 rounded-md bg-slate-800 text-slate-400 hover:bg-slate-700"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -349,196 +406,223 @@ function SearchContent() {
         )}
 
         {!isLoading && results.length > 0 && (
+          // main 3-column responsive layout; each column can be toggled
           <div className="flex flex-col xl:flex-row gap-4">
             {/* Results List */}
-            <div className="w-full xl:w-72 xl:flex-shrink-0">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-slate-400">
-                  <span className="text-amber-400 font-semibold">{results.length}</span>
-                  <span className="text-slate-500"> closest matches</span>
-                </p>
-              </div>
-
-              <div className="space-y-2 xl:max-h-[calc(100vh-180px)] overflow-y-auto pr-2">
-                {results.map((result, i) => {
-                  const meta = parseChunkMetadata(result.chunk);
-                  const isSelected = selectedResult?.id === result.id;
-
-                  return (
+            {showResultsPane && (
+              <div className={`w-full xl:flex-shrink-0 transition-all duration-200 ${showResultsPane ? "xl:w-72" : "xl:w-0"} `}>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-slate-400">
+                    <span className="text-amber-400 font-semibold">{results.length}</span>
+                    <span className="text-slate-500"> closest matches</span>
+                  </p>
+                  <div className="hidden xl:flex items-center gap-2">
                     <button
-                      key={result.id}
-                      onClick={() => handleSelectResult(result)}
-                      className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all ${
-                        isSelected
-                          ? "bg-amber-500/10 border-amber-500/50"
-                          : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
-                      }`}
+                      onClick={() => setShowResultsPane(false)}
+                      title="Collapse results"
+                      className="p-1 rounded hover:bg-slate-700 text-slate-400"
                     >
-                      <div className="flex items-start gap-2">
-                        <div
-                          className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                            isSelected ? "bg-amber-500 text-slate-900" : "bg-slate-700 text-slate-400"
-                          }`}
-                        >
-                          {i + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm text-slate-200 line-clamp-2 mb-1">
-                            {result.title}
-                          </h3>
-                          <div className="flex flex-wrap gap-1 text-xs">
-                            {meta?.section && (
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 xl:max-h-[calc(100vh-180px)] overflow-y-auto pr-2">
+                  {results.map((result, i) => {
+                    const meta = parseChunkMetadata(result.chunk);
+                    const isSelected = selectedResult?.id === result.id;
+
+                    return (
+                      <button
+                        key={result.id}
+                        onClick={() => handleSelectResult(result)}
+                        className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-all ${
+                          isSelected
+                            ? "bg-amber-500/10 border-amber-500/50"
+                            : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div
+                            className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                              isSelected ? "bg-amber-500 text-slate-900" : "bg-slate-700 text-slate-400"
+                            }`}
+                          >
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm text-slate-200 line-clamp-2 mb-1">
+                              {result.title}
+                            </h3>
+                            <div className="flex flex-wrap gap-1 text-xs">
+                              {meta?.section && (
+                                <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
+                                  § {meta.section}
+                                </span>
+                              )}
                               <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
-                                § {meta.section}
+                                p.{result.pageNumber}
                               </span>
-                            )}
-                            <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">
-                              p.{result.pageNumber}
-                            </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* PDF Viewer */}
-            <div className="flex-1 min-w-0 xl:min-w-[400px]">
-              {selectedResult ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                  <div className="p-2 sm:p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between">
-                    <div className="flex-1 min-w-0 mr-2">
-                      <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate">
-                        {selectedResult.title}
-                      </h3>
-                      <p className="text-xs text-slate-400 truncate">
-                        {selectedResult.pdfFileName} • Page {selectedResult.pageNumber}
-                      </p>
+            {showPdfPane && (
+              <div className="flex-1 min-w-0 xl:min-w-[400px] transition-all duration-200">
+                {selectedResult ? (
+                  <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                    <div className="p-2 sm:p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between">
+                      <div className="flex-1 min-w-0 mr-2">
+                        <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate">
+                          {selectedResult.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 truncate">
+                          {selectedResult.pdfFileName} • Page {selectedResult.pageNumber}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setShowPdfPane(false)}
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded flex-shrink-0"
+                          title="Collapse viewer"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedResult(null)}
+                          className="p-1 sm:p-1.5 hover:bg-slate-700 rounded flex-shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+
                     <button
-                      onClick={() => setSelectedResult(null)}
-                      className="p-1 sm:p-1.5 hover:bg-slate-700 rounded flex-shrink-0"
+                      onClick={() => setShowMatchedText(!showMatchedText)}
+                      className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3"
                     >
-                      <X className="w-4 h-4" />
+                      <span className="flex items-center gap-2 truncate">
+                        <FileText className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">Matched text</span>
+                      </span>
+                      <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${showMatchedText ? "rotate-180" : ""}`} />
                     </button>
-                  </div>
 
-                  <button
-                    onClick={() => setShowMatchedText(!showMatchedText)}
-                    className="w-full p-2 border-b border-slate-700 bg-slate-900/30 text-xs text-slate-400 hover:text-slate-300 hover:bg-slate-900/50 flex items-center justify-between px-2 sm:px-3"
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <FileText className="w-3 h-3 flex-shrink-0" />
-                      <span className="truncate">Matched text</span>
-                    </span>
-                    <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${showMatchedText ? "rotate-180" : ""}`} />
-                  </button>
+                    {showMatchedText && (
+                      <div className="p-3 border-b border-slate-700 bg-slate-900/50">
+                        <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                          {cleanSearchText(selectedResult.searchableText)}
+                        </p>
+                      </div>
+                    )}
 
-                  {showMatchedText && (
-                    <div className="p-3 border-b border-slate-700 bg-slate-900/50">
-                      <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                        {cleanSearchText(selectedResult.searchableText)}
-                      </p>
+                    <div className="bg-slate-900 h-[50vh] xl:h-[70vh]">
+                      <iframe
+                        src={getPdfUrl(selectedResult)}
+                        className="w-full h-full border-0 block"
+                        title={`PDF: ${selectedResult.title}`}
+                      />
                     </div>
-                  )}
-
-                  <div className="bg-slate-900 h-[50vh] xl:h-[70vh]">
-                    <iframe
-                      src={getPdfUrl(selectedResult)}
-                      className="w-full h-full border-0 block"
-                      title={`PDF: ${selectedResult.title}`}
-                    />
                   </div>
-                </div>
-              ) : (
-                <div className="bg-slate-800/30 border border-slate-700 border-dashed rounded-xl p-8 xl:p-12 text-center">
-                  <FileText className="w-10 h-10 xl:w-12 xl:h-12 text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-500 text-sm xl:text-base">Select a result to view the document</p>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="bg-slate-800/30 border border-slate-700 border-dashed rounded-xl p-8 xl:p-12 text-center">
+                    <FileText className="w-10 h-10 xl:w-12 xl:h-12 text-slate-600 mx-auto mb-4" />
+                    <p className="text-slate-500 text-sm xl:text-base">Select a result to view the document</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* AI Summary Panel */}
-            <div className={`xl:flex-shrink-0 transition-[width] duration-200`} style={{ width: showSummaryPanel ? '28rem' : '2.5rem' }} >
-              {/* Toggle button for collapsed state on desktop */}
-              <div className="hidden xl:block">
-                {!showSummaryPanel ? (
-                  <button
-                    onClick={() => setShowSummaryPanel(true)}
-                    className="w-10 h-full min-h-[400px] bg-slate-800/50 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors group"
-                    title="Show AI Summary"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Bot className="w-5 h-5 text-amber-400" />
-                      <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
-                    </div>
-                  </button>
-                ) : null}
-              </div>
-
-              {showSummaryPanel && (
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden h-full">
-                  {/* Header */}
-                  <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-amber-500/20">
-                        <Bot className="w-4 h-4 text-amber-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-100">AI Summary</h3>
-                      </div>
-                    </div>
+            {showSummaryPanel && (
+              <div className={`xl:flex-shrink-0 transition-[width] duration-200`} style={{ width: showSummaryPanel ? '28rem' : '2.5rem' }} >
+                {/* Toggle button for collapsed state on desktop */}
+                <div className="hidden xl:block">
+                  {!showSummaryPanel ? (
                     <button
-                      onClick={() => setShowSummaryPanel(false)}
-                      className="hidden xl:flex p-1.5 hover:bg-slate-700 rounded text-slate-500 hover:text-slate-300"
-                      title="Hide panel"
+                      onClick={() => setShowSummaryPanel(true)}
+                      className="w-10 h-full min-h-[400px] bg-slate-800/50 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors group"
+                      title="Show AI Summary"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <div className="flex flex-col items-center gap-2">
+                        <Bot className="w-5 h-5 text-amber-400" />
+                        <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
+                      </div>
                     </button>
-                  </div>
+                  ) : null}
+                </div>
 
-                  {/* Content */}
-                  <div className="p-4 max-h-[60vh] xl:max-h-[calc(100vh-220px)] overflow-y-auto">
-                    {isSummaryLoading ? (
-                      <div className="flex flex-col items-center justify-center py-8 gap-3">
-                        <div className="relative">
-                          <div className="w-10 h-10 border-2 border-amber-500/30 rounded-full" />
-                          <div className="absolute inset-0 w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                          <Sparkles className="absolute inset-0 m-auto w-4 h-4 text-amber-400" />
+                {showSummaryPanel && (
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden h-full">
+                    {/* Header */}
+                    <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500/20">
+                          <Bot className="w-4 h-4 text-amber-400" />
                         </div>
-                        <div className="text-center">
-                          <p className="text-sm text-slate-300">Analyzing results...</p>
-                          <p className="text-xs text-slate-500 mt-1">Generating legal summary</p>
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-100">AI Summary</h3>
                         </div>
                       </div>
-                    ) : aiSummary ? (
-                      <div className="text-sm">
-                        {renderMarkdown(aiSummary)}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowSummaryPanel(false)}
+                          className="p-1.5 hover:bg-slate-700 rounded text-slate-500 hover:text-slate-300"
+                          title="Hide panel"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Bot className="w-8 h-8 text-slate-600 mb-3" />
-                        <p className="text-sm text-slate-500">
-                          AI summary will appear here after searching
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 max-h-[60vh] xl:max-h-[calc(100vh-220px)] overflow-y-auto">
+                      {isSummaryLoading ? (
+                        <div className="flex flex-col items-center justify-center py-8 gap-3">
+                          <div className="relative">
+                            <div className="w-10 h-10 border-2 border-amber-500/30 rounded-full" />
+                            <div className="absolute inset-0 w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                            <Sparkles className="absolute inset-0 m-auto w-4 h-4 text-amber-400" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-slate-300">Analyzing results...</p>
+                            <p className="text-xs text-slate-500 mt-1">Generating legal summary</p>
+                          </div>
+                        </div>
+                      ) : aiSummary ? (
+                        <div className="text-sm">
+                          {renderMarkdown(aiSummary)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <Bot className="w-8 h-8 text-slate-600 mb-3" />
+                          <p className="text-sm text-slate-500">
+                            AI summary will appear here after searching
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer hint */}
+                    {aiSummary && (
+                      <div className="px-4 py-2 border-t border-slate-700 bg-slate-900/50">
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                          <Info className="w-3 h-3" />
+                          AI-generated summary. Verify with source documents.
                         </p>
                       </div>
                     )}
                   </div>
-
-                  {/* Footer hint */}
-                  {aiSummary && (
-                    <div className="px-4 py-2 border-t border-slate-700 bg-slate-900/50">
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                        <Info className="w-3 h-3" />
-                        AI-generated summary. Verify with source documents.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
