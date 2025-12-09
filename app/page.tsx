@@ -214,7 +214,7 @@ export default function LandingPage() {
             </h1>
           </div>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Search the Colorado Revised Statutes in plain English. Find answers to your legal questions instantly.
+            Search the Colorado Revised Statutes in plain English.
           </p>
         </div>
 
