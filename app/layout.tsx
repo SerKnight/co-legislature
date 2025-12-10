@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   
   // Favicon and icons
   icons: {
-    icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Flag_of_Colorado.svg/960px-Flag_of_Colorado.svg.png",
+    icon: "/co.ico",
     apple: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Flag_of_Colorado.svg/960px-Flag_of_Colorado.svg.png",
   },
   
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://yourdomain.com", // Replace with your actual domain
+    url: "https://colorado-legislature.org",
     siteName: "Colorado Law Lookup",
     title: "Colorado Law Lookup - Search Colorado Statutes in Plain English",
     description: "Free AI-powered search tool for Colorado laws. Find answers to legal questions about criminal law, property, traffic, family law, and more from the Colorado Revised Statutes.",
@@ -121,7 +121,7 @@ const structuredData = {
   "@type": "WebApplication",
   "name": "Colorado Law Lookup",
   "description": "Search Colorado Revised Statutes in plain English using AI-powered semantic search",
-  "url": "https://yourdomain.com",
+  "url": "https://colorado-legislature.org",
   "applicationCategory": "Legal",
   "operatingSystem": "Any",
   "offers": {
