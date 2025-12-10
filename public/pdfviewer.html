@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PDF Viewer</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf_viewer.min.css">
   <style>
@@ -14,47 +14,77 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .toolbar {
       background: #334155;
-      padding: 8px 16px;
+      padding: 6px 8px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       border-bottom: 1px solid #475569;
       flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 640px) {
+      .toolbar {
+        padding: 4px 6px;
+        gap: 4px;
+      }
     }
     .toolbar input[type="text"] {
       flex: 1;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 6px 10px;
+      border-radius: 4px;
       border: 1px solid #475569;
       background: #1e293b;
       color: #e2e8f0;
-      font-size: 14px;
-      min-width: 0;
+      font-size: 13px;
+      min-width: 120px;
+    }
+    @media (max-width: 640px) {
+      .toolbar input[type="text"] {
+        padding: 5px 8px;
+        font-size: 12px;
+        min-width: 100px;
+      }
     }
     .toolbar input[type="text"]:focus {
       outline: none;
       border-color: #f59e0b;
     }
     .toolbar button {
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 6px 10px;
+      border-radius: 4px;
       border: none;
       background: #475569;
       color: #e2e8f0;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       white-space: nowrap;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .toolbar button {
+        padding: 5px 8px;
+        font-size: 11px;
+      }
     }
     .toolbar button:hover { background: #64748b; }
-    .toolbar button.primary { background: #f59e0b; color: #1e293b; }
+    .toolbar button.primary { background: #f59e0b; color: #1e293b; font-weight: 600; }
     .toolbar button.primary:hover { background: #fbbf24; }
     .search-info {
-      font-size: 12px;
+      font-size: 11px;
       color: #94a3b8;
       white-space: nowrap;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .search-info {
+        font-size: 10px;
+        order: 5;
+        width: 100%;
+      }
     }
     .search-info.found { color: #4ade80; }
     .search-info.not-found { color: #f87171; }
@@ -65,15 +95,26 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 20px;
+      padding: 10px;
       background: #0f172a;
       min-width: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 640px) {
+      .viewer {
+        padding: 8px;
+      }
     }
     .page-container {
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
       background: white;
       flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .page-container {
+        box-shadow: 0 1px 8px rgba(0,0,0,0.4);
+      }
     }
     .page-container canvas { display: block; }
     .textLayer {
@@ -113,8 +154,15 @@
       align-items: center;
       justify-content: center;
       height: 100%;
-      font-size: 18px;
+      font-size: 16px;
       color: #94a3b8;
+      flex-direction: column;
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .loading {
+        font-size: 14px;
+      }
     }
     .loading-spinner {
       width: 24px;
@@ -123,70 +171,106 @@
       border-top-color: #f59e0b;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-right: 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .bottom-bar {
       background: #334155;
-      padding: 8px 16px;
+      padding: 6px 8px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
+      justify-content: space-between;
+      gap: 8px;
       border-top: 1px solid #475569;
       flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 640px) {
+      .bottom-bar {
+        padding: 4px 6px;
+        gap: 4px;
+      }
     }
     .bottom-bar button {
-      padding: 6px 10px;
-      border-radius: 6px;
+      padding: 5px 8px;
+      border-radius: 4px;
       border: none;
       background: #475569;
       color: #e2e8f0;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .bottom-bar button {
+        padding: 4px 6px;
+        font-size: 11px;
+      }
     }
     .bottom-bar button:hover { background: #64748b; }
     .bottom-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
     .page-info {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
+      gap: 4px;
+      font-size: 12px;
       color: #94a3b8;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .page-info {
+        font-size: 11px;
+        gap: 2px;
+      }
     }
     .page-info input {
-      width: 60px;
-      padding: 4px 8px;
-      border-radius: 4px;
+      width: 50px;
+      padding: 4px 6px;
+      border-radius: 3px;
       border: 1px solid #475569;
       background: #1e293b;
       color: #e2e8f0;
       text-align: center;
-      font-size: 14px;
+      font-size: 12px;
+    }
+    @media (max-width: 640px) {
+      .page-info input {
+        width: 45px;
+        padding: 3px 4px;
+        font-size: 11px;
+      }
     }
     .zoom-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-left: auto;
-      font-size: 13px;
+      gap: 4px;
+      font-size: 12px;
       color: #94a3b8;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .zoom-controls {
+        font-size: 11px;
+        gap: 2px;
+      }
     }
     .download-btn {
-      margin-right: auto;
       display: flex;
       align-items: center;
       gap: 4px;
+      flex-shrink: 0;
     }
-    .download-btn svg { width: 16px; height: 16px; }
+    .download-btn svg { width: 14px; height: 14px; }
+    @media (max-width: 640px) {
+      .download-btn svg { width: 12px; height: 12px; }
+    }
   </style>
 </head>
 <body>
   <div class="toolbar">
-    <input type="text" id="searchInput" placeholder="Search in document...">
+    <input type="text" id="searchInput" placeholder="Search...">
     <button onclick="findText()" class="primary">Find</button>
-    <button onclick="findPrev()">◂ Prev</button>
-    <button onclick="findNext()">Next ▸</button>
+    <button onclick="findPrev()" title="Previous">◂</button>
+    <button onclick="findNext()" title="Next">▸</button>
     <div id="searchInfo" class="search-info"></div>
   </div>
 
@@ -198,22 +282,21 @@
   </div>
 
   <div class="bottom-bar">
-    <button class="download-btn" onclick="downloadPdf()">
+    <button class="download-btn" onclick="downloadPdf()" title="Download PDF">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/>
       </svg>
-      Download
     </button>
     <div class="page-info">
-      <button onclick="prevPage()" id="prevBtn">◂</button>
+      <button onclick="prevPage()" id="prevBtn" title="Previous page">◂</button>
       <input type="number" id="pageInput" min="1" onchange="goToPage(parseInt(this.value))">
       <span>of <span id="totalPages">-</span></span>
-      <button onclick="nextPage()" id="nextBtn">▸</button>
+      <button onclick="nextPage()" id="nextBtn" title="Next page">▸</button>
     </div>
     <div class="zoom-controls">
-      <button onclick="zoomOut()">−</button>
+      <button onclick="zoomOut()" title="Zoom out">−</button>
       <span id="zoomLevel">120%</span>
-      <button onclick="zoomIn()">+</button>
+      <button onclick="zoomIn()" title="Zoom in">+</button>
     </div>
   </div>
 
@@ -278,7 +361,15 @@
       
       try {
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale });
+        
+        // Adaptive scale for mobile
+        let pageScale = scale;
+        if (window.innerWidth < 640 && scale > 1) {
+          // Reduce scale on mobile to fit better
+          pageScale = Math.min(scale, 1);
+        }
+        
+        const viewport = page.getViewport({ scale: pageScale });
 
         viewer.innerHTML = '';
 

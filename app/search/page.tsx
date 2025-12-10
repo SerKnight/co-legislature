@@ -631,7 +631,7 @@ function SearchContent() {
                     <div className="bg-slate-900 flex-1 min-h-0">
                       <iframe
                         src={getPdfUrl(selectedResult)}
-                        className="w-full h-full border-0 block"
+                        className="w-full h-full border-0 block min-h-[800px]"
                         title={`PDF: ${selectedResult.title}`}
                       />
                     </div>
